@@ -38,6 +38,8 @@ with sync_playwright() as p:
     pg.get_by_text('체력나이').first.wait_for(timeout=60000)
     time.sleep(1.5)
     pg.screenshot(path=f'{OUT}/09_{TAG}_camera_result_full.png', full_page=True)
+    for i in range(pg.locator('section').count()):
+        pg.locator('section').nth(i).screenshot(path=f'{OUT}/09_{TAG}_sec{i}.png')
     body = pg.inner_text('body')
     i = body.find('회')
     print(TAG, 'RESULT HEAD:', body[max(0, i - 40):i + 80].replace('\n', ' | ').encode('utf-8', 'replace').decode('utf-8'))

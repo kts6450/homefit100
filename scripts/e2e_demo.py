@@ -17,8 +17,8 @@ with sync_playwright() as p:
     pg.goto(URL, wait_until='networkidle')
     pg.screenshot(path=f'{OUT}/01_landing.png')
     pg.screenshot(path=f'{OUT}/01_landing_full.png', full_page=True)
-    label = '윗몸일으키기 데모' if TEST == 'situp' else '어르신 의자 종목 데모'
-    pg.get_by_text(label).click()
+    label = {'curlup': '청소년', 'situp': '성인', 'chairstand': '어르신'}[TEST]
+    pg.locator('button', has_text=label).first.click()
     pg.get_by_text('AI 분석 시작').wait_for(timeout=60000)
     time.sleep(1.5)
     pg.screenshot(path=f'{OUT}/02_{TEST}_ready.png')

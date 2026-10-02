@@ -116,6 +116,7 @@ figcaption { font-size: 8pt; color: #64748b; margin-top: 2px; }
 .pb { page-break-before: always; }
 h2, h3 { break-after: avoid; page-break-after: avoid; }
 tr, figure, .kpi, .flow { break-inside: avoid; page-break-inside: avoid; }
+tr:first-child { break-after: avoid; page-break-after: avoid; }
 ul { margin: 4px 0 8px; padding-left: 18px; }
 li { margin: 2px 0; }
 .check { color: #00a37a; font-weight: 700; }
@@ -136,10 +137,10 @@ def report_html():
     run_chair = img(f'{s}/08_chair_camera_running_2.png', crop=(0, 0, 824, 720), width=700) if os.path.exists(f'{s}/08_chair_camera_running_2.png') else run_situp
     ready = img(f'{s}/06_situp_camera_ready.png', crop=(0, 0, 824, 1500), width=700)
     profile = img(f'{s}/05_situp_profile.png', crop=(0, 0, 824, 1700), width=700)
-    res_full = Image.open(f'{s}/04_situp_result_full.png')
-    res_top = img(f'{s}/04_situp_result_full.png', crop=(0, 0, 824, 1520), width=700)
-    res_rx = img(f'{s}/04_situp_result_full.png', crop=(0, 1520, 824, 2920), width=700)
-    res_center = img(f'{s}/04_situp_result_full.png', crop=(0, 2860, 824, min(res_full.height, 3960)), width=700)
+    res_top = img(f'{s}/09_situp_sec0.png', width=700)
+    res_rx = img(f'{s}/09_situp_sec1.png', width=700)
+    res_course = img(f'{s}/09_situp_sec2.png', width=700) if courses else None
+    res_center = img(f'{s}/09_situp_sec3.png' if courses else f'{s}/09_situp_sec2.png', width=700)
     team = ', '.join(CFG['team'])
     return head('활용사례 보고서') + f"""
 <div class="cover">
@@ -215,10 +216,13 @@ def report_html():
 
 <div class="grid3" style="margin-top:6px">
   <figure><img src="{res_rx}"><figcaption>⑤ 비슷한 체력군의 실제 처방 TOP5 + 공식 영상</figcaption></figure>
-  <figure><img src="{res_center}"><figcaption>⑥ 가까운 체력인증센터 · 예약 연결</figcaption></figure>
-  <figure><img src="{run_chair}"><figcaption>⑦ 어르신 종목(의자에앉았다일어서기)</figcaption></figure>
+  {f'<figure><img src="{res_course}"><figcaption>⑥ 우리 동네 이용권 강좌 추천</figcaption></figure>' if res_course else ''}
+  <figure><img src="{res_center}"><figcaption>⑦ 가까운 체력인증센터 · 예약 연결</figcaption></figure>
 </div>
-{f'<div class="grid3" style="margin-top:6px"><figure><img src="{run_teen}"><figcaption>⑧ 청소년 윗몸말아올리기 · 신호음 리듬 안내</figcaption></figure></div>' if run_teen else ''}
+<div class="grid3" style="margin-top:6px">
+  <figure><img src="{run_chair}"><figcaption>⑧ 어르신 종목(의자에앉았다일어서기)</figcaption></figure>
+  {f'<figure><img src="{run_teen}"><figcaption>⑨ 청소년 윗몸말아올리기 · 신호음 리듬</figcaption></figure>' if run_teen else ''}
+</div>
 
 <h3>ㅇ AI 측정 정확도 검증</h3>
 <table>
