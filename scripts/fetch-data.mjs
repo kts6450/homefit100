@@ -74,6 +74,7 @@ const jobs = {
     }),
   centers: () => fetchAll('centers', 'SRVC_TODZ_NFA_TEST_CENTER_CNT/TODZ_NFA_TEST_CENTER_CNT'),
   videos: () => fetchAll('videos', 'SRVC_TODZ_VDO_PKG/TODZ_VDO_TRNG_VIDEO_I'),
+  allvideos: () => fetchAll('allvideos', 'SRVC_TODZ_VDO_PKG/TODZ_VDO_VIEW_ALL_LIST_I', { concurrency: 2 }),
   courses: () => fetchAll('courses', 'SRVC_OD_API_FACIL_COURSE/todz_api_facil_course_i', { concurrency: 3 }),
   facilities: () => fetchAll('facilities', 'SRVC_OD_API_FACIL_MNG/todz_api_facil_mng_i', { concurrency: 3 }),
 };
