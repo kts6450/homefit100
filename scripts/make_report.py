@@ -145,7 +145,7 @@ def report_html():
     return head('활용사례 보고서') + f"""
 <div class="cover">
   <div class="small">2026년 국민체육진흥공단 공공데이터 활용 경진대회 · ① 서비스(앱·웹) 개발 부문 · [붙임1] 활용사례 보고서</div>
-  <h1>홈체력100 — 폰 카메라로 집에서 하는 국민체력100</h1>
+  <h1>홈체력100 — 폰 카메라로 집에서 하는 국민체력100 AI 셀프 체력측정·운동처방 서비스</h1>
   <div class="sub">AI 자세인식으로 국민체력100 공식 종목을 셀프 측정하고, 공단 측정결과 데이터로 체력나이·맞춤 운동처방·체력인증센터 연계까지 제공하는 웹 서비스</div>
   <table style="margin-top:10px"><tr><th>서비스 URL</th><td><b>{URL}</b></td><td rowspan="3" style="width:86px;text-align:center"><img src="{qr(URL)}" style="width:74px"></td></tr>
   <tr><th>운영주체</th><td>{CFG['operator']} (참가자: {team})</td></tr>
@@ -303,6 +303,7 @@ def evidence_html():
     res_full = img(f'{s}/04_situp_result_full.png', crop=(0, 1100, 824, 1520), width=600)
     return head('증빙자료') + f"""
 <h1>[붙임2] 증빙자료 — 홈체력100</h1>
+<p><b>과제명</b>: 홈체력100 — 폰 카메라로 집에서 하는 국민체력100 AI 셀프 체력측정·운동처방 서비스</p>
 <p class="small">2026년 국민체육진흥공단 공공데이터 활용 경진대회 · 서비스(앱·웹) 개발 부문</p>
 <h2>1) 서비스 구축(승인) 완료일: 2026. 10. 2.</h2>
 <p>소스 저장소 {REPO} 의 커밋 이력과 GitHub Actions 배포 기록으로 확인할 수 있습니다. 최초 배포와 최종 배포 모두 2026-10-02입니다.</p>
