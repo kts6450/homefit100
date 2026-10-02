@@ -12,6 +12,7 @@ with sync_playwright() as p:
         f'--use-file-for-fake-video-capture={Y4M}', '--autoplay-policy=no-user-gesture-required'])
     ctx = b.new_context(viewport={'width': 412, 'height': 915}, device_scale_factor=2, permissions=['camera'])
     pg = ctx.new_page()
+    pg.route('**/hits.sh/**', lambda r: r.abort())  # 자동화 테스트는 운영 통계에서 제외
     errs = []
     pg.on('pageerror', lambda e: errs.append(str(e)))
     pg.goto(URL, wait_until='networkidle')

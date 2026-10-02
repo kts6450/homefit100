@@ -10,6 +10,7 @@ CHROME = r'C:\Program Files\Google\Chrome\Application\chrome.exe'
 with sync_playwright() as p:
     b = p.chromium.launch(executable_path=CHROME, headless=True, args=['--autoplay-policy=no-user-gesture-required'])
     pg = b.new_page(viewport={'width': 412, 'height': 915}, device_scale_factor=2)
+    pg.route('**/hits.sh/**', lambda r: r.abort())  # 자동화 테스트는 운영 통계에서 제외
     errs = []
     pg.on('pageerror', lambda e: errs.append(str(e)))
     pg.on('console', lambda m: m.type == 'error' and errs.append(m.text))

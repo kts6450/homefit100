@@ -1,3 +1,4 @@
+import { SITE, VISIT_BADGE } from '../lib/site'
 import type { TestId } from '../lib/tests'
 
 const DEMOS: { id: TestId; who: string; name: string }[] = [
@@ -60,7 +61,7 @@ export default function Landing({ sampleSize, onStart, onDemo }: Props) {
         <div className="grid grid-cols-3 divide-x divide-slate-100 rounded-2xl bg-white py-4 text-center shadow-lg shadow-slate-200/70">
           <Stat value={sampleSize ? `${Math.round(sampleSize / 10000)}만 건` : '…'} label="비교 측정 데이터" />
           <Stat value="3종목" label="국민체력100 공식" />
-          <Stat value="0건" label="영상 외부 전송" />
+          <Stat value="0건" label="영상·기록 외부 전송" />
         </div>
       </section>
 
@@ -107,8 +108,24 @@ export function Footer() {
   return (
     <footer className="border-t border-slate-200 bg-white px-5 py-8 text-xs leading-relaxed text-slate-500">
       <div className="mx-auto max-w-md">
-        <div className="font-bold text-slate-700">홈체력100</div>
-        <p className="mt-2">
+        <div className="flex items-center justify-between">
+          <div className="font-bold text-slate-700">
+            {SITE.name} <span className="font-normal text-slate-400">v{SITE.version}</span>
+          </div>
+          <img src={VISIT_BADGE} alt="방문 수" className="h-5" loading="lazy" />
+        </div>
+        <nav className="mt-3 flex flex-wrap gap-x-4 gap-y-1 font-semibold text-slate-600">
+          <a href="#/guide">이용안내</a>
+          <a href="#/privacy">개인정보처리방침</a>
+          <a href="#/changelog">업데이트 내역</a>
+          <a href={SITE.contactUrl} target="_blank" rel="noreferrer">
+            문의·오류 신고
+          </a>
+        </nav>
+        <p className="mt-3">
+          운영: {SITE.operator} · 서비스 시작 {SITE.openedAt}
+        </p>
+        <p className="mt-1">
           활용 데이터: 서울올림픽기념국민체육진흥공단 국민체력100 체력인증센터 측정결과 정보 · 체력인증센터 측정건수 정보 · 국민체력100
           동영상 정보 (공공데이터포털)
         </p>

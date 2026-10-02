@@ -1,12 +1,20 @@
 import { useEffect, useState } from 'react'
+import InfoPage, { type InfoTab } from './components/InfoPage'
 import Landing from './components/Landing'
 import MeasureScreen, { type Source } from './components/MeasureScreen'
 import ProfileForm, { type Profile } from './components/ProfileForm'
 import ResultScreen, { type DemoInfo } from './components/ResultScreen'
 import { loadData, type AppData } from './lib/data'
+import { ping } from './lib/site'
 import { TESTS, testForAge, type TestId } from './lib/tests'
 
 type Step = 'landing' | 'profile' | 'measure' | 'result'
+
+const INFO_TABS: InfoTab[] = ['guide', 'privacy', 'changelog']
+const tabFromHash = (): InfoTab | null => {
+  const t = location.hash.replace('#/', '') as InfoTab
+  return INFO_TABS.includes(t) ? t : null
+}
 
 /** 데모 영상(공단 공식 측정방법 영상 구간)의 실제 반복 횟수와 예시 참가자 */
 const DEMO: Record<TestId, { truth: number; profile: Profile; exampleCount: number }> = {
@@ -24,6 +32,13 @@ export default function App() {
   const [source, setSource] = useState<Source>({ kind: 'camera' })
   const [count, setCount] = useState(0)
   const [demo, setDemo] = useState<DemoInfo | undefined>()
+  const [infoTab, setInfoTab] = useState<InfoTab | null>(tabFromHash)
+
+  useEffect(() => {
+    const onHash = () => setInfoTab(tabFromHash())
+    window.addEventListener('hashchange', onHash)
+    return () => window.removeEventListener('hashchange', onHash)
+  }, [])
 
   useEffect(() => {
     loadData().then(setData, (e) => setDataError(String(e)))
@@ -32,9 +47,22 @@ export default function App() {
   // 최신 Chrome에서 scrollTo는 Promise를 반환하므로 effect 정리 함수로 반환되지 않게 감싼다
   useEffect(() => {
     window.scrollTo(0, 0)
-  }, [step])
+  }, [step, infoTab])
 
   const test = TESTS[testId]
+
+  if (infoTab)
+    return (
+      <InfoPage
+        tab={infoTab}
+        onTab={(t) => (location.hash = `#/${t}`)}
+        onHome={() => {
+          history.replaceState(null, '', location.pathname)
+          setInfoTab(null)
+          setStep('landing')
+        }}
+      />
+    )
 
   if (step === 'landing')
     return (
@@ -77,6 +105,7 @@ export default function App() {
         onBack={() => setStep(source.kind === 'demo' ? 'landing' : 'profile')}
         onFile={(file) => setSource({ kind: 'file', file })}
         onDone={(n) => {
+          ping(`${source.kind === 'demo' ? 'demo' : 'measure'}-${testId}`)
           if (source.kind === 'demo') {
             setDemo({ aiCount: n, truth: DEMO[testId].truth })
             setCount(DEMO[testId].exampleCount)

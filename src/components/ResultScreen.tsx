@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import type { AppData, Video } from '../lib/data'
 import { saveRecord, type MeasureRecord } from '../lib/history'
 import { drawShareCard } from '../lib/shareCard'
+import { ping } from '../lib/site'
 import { ageBand, estimateGrade, fitnessAge, percentile } from '../lib/norms'
 import type { TestDef } from '../lib/tests'
 import { Footer } from './Landing'
@@ -48,6 +49,7 @@ export default function ResultScreen({ data, test, profile, count, demo, onRetry
         lines: [`${testLabel} ${count}회`, isTeen ? `이 종목 기준 ${gradeLabel}` : `같은 성별·나이 100명 중 ${r.rank}등 · ${gradeLabel}`],
         footer: `국민체력100 측정 데이터 ${Math.round(data.norms.sampleSize / 10000)}만 건과 비교 · 국민체육진흥공단 공공데이터`,
       })
+      ping('share')
       const file = new File([blob], 'homefit100.png', { type: 'image/png' })
       if (navigator.canShare?.({ files: [file] })) {
         await navigator.share({ files: [file], title: '홈체력100', text: `${text} ${url}` })
