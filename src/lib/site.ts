@@ -2,7 +2,7 @@
 export const SITE = {
   name: '홈체력100',
   url: 'https://kts6450.github.io/homefit100/',
-  operator: '홈체력100 운영팀',
+  operator: '김태성',
   contactUrl: 'https://github.com/kts6450/homefit100/issues',
   version: '1.2.0',
   openedAt: '2026-10-02',
