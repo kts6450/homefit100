@@ -1,6 +1,6 @@
 # 제출서류 생성: [붙임1] 활용사례 보고서, [붙임2] 증빙자료, [붙임3] 개인정보 동의서 → report/*.pdf
 # 사용: python scripts/make_report.py
-import base64, io, json, os, sys
+import base64, io, json, os, re, sys, urllib.request
 import qrcode
 from PIL import Image
 from playwright.sync_api import sync_playwright
@@ -25,6 +25,44 @@ n_center = len(centers['list'])
 center_recent = sum(c['recentCnt'] for c in centers['list'])
 ym = lambda s: f'{s[:4]}.{s[4:6]}'
 RANGE = f"{ym(norms['range'][0])}~{ym(norms['range'][1])}"
+
+
+def counter(key):
+    """hits.sh 익명 카운터 누적값 (읽기 요청 자체가 1 올리므로 1을 뺀다)"""
+    path = 'kts6450.github.io/homefit100' + (f'/{key}' if key else '')
+    try:
+        svg = urllib.request.urlopen(f'https://hits.sh/{path}.svg?view=total', timeout=20).read().decode()
+        nums = [int(n) for n in re.findall(r'>(\d+)<', svg)]
+        return max(0, nums[-1] - 1) if nums else 0
+    except Exception:
+        return 0
+
+
+def pilot_html():
+    stats = {
+        '방문': counter(''),
+        '측정 완료(청소년)': counter('measure-curlup'),
+        '측정 완료(성인)': counter('measure-situp'),
+        '측정 완료(어르신)': counter('measure-chairstand'),
+        '데모 체험': counter('demo-curlup') + counter('demo-situp') + counter('demo-chairstand'),
+        '결과 카드 공유': counter('share'),
+    }
+    pilot = CFG.get('pilot', {})
+    testers = pilot.get('testers', [])
+    rows = ''.join(
+        f"<tr><td>{t.get('who','')}</td><td>{t.get('test','')}</td><td>{t.get('self','')}</td><td>{t.get('ai','')}</td><td>{t.get('comment','')}</td></tr>"
+        for t in testers
+    )
+    diffs = [abs(int(t['ai']) - int(t['self'])) for t in testers if str(t.get('ai', '')).isdigit() and str(t.get('self', '')).isdigit()]
+    acc = f"<p class='small'>실사용 {len(diffs)}건의 AI 카운트와 본인이 센 횟수의 평균 차이: <b>{sum(diffs)/len(diffs):.1f}회</b></p>" if diffs else ''
+    stat_cells = ''.join(f"<div class='kpi'><b>{v:,}</b><span>{k}</span></div>" for k, v in stats.items())
+    return f"""
+<h3>ㅇ 시범 운영 결과 ({pilot.get('period', '2026. 10. 2.~')})</h3>
+<p>서비스 공개 후 실제 이용 현황입니다. 운영 통계는 쿠키 없는 익명 카운터로 집계했으며(개발자 자동화 테스트 제외), 측정값·개인정보는 수집하지 않습니다.</p>
+<div class="grid3">{stat_cells}</div>
+{f'<table style="margin-top:8px"><tr><th>이용자</th><th>종목</th><th>직접 센 횟수</th><th>AI 카운트</th><th>후기</th></tr>{rows}</table>' if rows else ''}
+{acc}
+"""
 
 
 def img(path, crop=None, width=None):
@@ -186,6 +224,8 @@ def report_html():
 </table>
 <p class="small">※ 임계값은 공단 측정방법 영상에서 추출한 관절 지표 시계열로 보정했으며, 카운터·규준 로직은 단위 테스트 21건으로 검증했습니다.</p>
 
+{pilot_html()}
+
 <h3>ㅇ 기대효과(파급효과)</h3>
 <div class="grid4">
   <div class="kpi"><b>3분</b><span>센터 방문 없이 집에서 1차 측정·결과·처방까지</span></div>
@@ -258,7 +298,9 @@ def evidence_html():
 {f'<figure><img src="{commits}"><figcaption>GitHub 커밋 이력</figcaption></figure>' if commits else ''}
 {f'<figure style="margin-top:8px"><img src="{actions}"><figcaption>GitHub Actions — GitHub Pages 배포 기록</figcaption></figure>' if actions else ''}
 <h2>2) 운영주체</h2>
-<table><tr><th>운영주체</th><td>{CFG['operator']}</td></tr><tr><th>참가자</th><td>{', '.join(CFG['team'])}</td></tr><tr><th>소스·배포 계정</th><td>GitHub kts6450 (저장소 {REPO})</td></tr></table>
+<table><tr><th>운영주체</th><td>{CFG['operator']}</td></tr><tr><th>참가자</th><td>{', '.join(CFG['team'])}</td></tr><tr><th>소스·배포 계정</th><td>GitHub kts6450 (저장소 {REPO})</td></tr>
+<tr><th>운영 요소</th><td>이용안내 · 개인정보처리방침(시행일 2026-10-02) · 업데이트 내역(v1.0.0~v1.2.0) · 문의·오류 신고 게시판({REPO}/issues) · 익명 운영 통계</td></tr></table>
+{f'<div class="grid2" style="margin-top:6px"><figure><img src="{img(SHOTS + "/10_privacy.png", crop=(0, 0, 824, 1600), width=600)}"><figcaption>개인정보처리방침</figcaption></figure><figure><img src="{img(SHOTS + "/11_changelog.png", crop=(0, 0, 824, 1600), width=600)}"><figcaption>업데이트 내역</figcaption></figure></div>' if os.path.exists(SHOTS + '/10_privacy.png') else ''}
 <h2>3) 서비스 URL</h2>
 <table><tr><td><b>{URL}</b><br><span class="small">모바일·PC 브라우저에서 바로 실행(설치 불필요). 첫 화면의 ‘운동 없이 체험’으로 카메라 없이도 AI 측정을 확인할 수 있습니다.</span></td><td style="width:110px;text-align:center"><img src="{qr(URL)}" style="width:96px"></td></tr></table>
 <h2>4) 기대효과(파급효과)</h2>
