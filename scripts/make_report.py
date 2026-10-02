@@ -333,6 +333,10 @@ def evidence_html():
 
 
 def consent_html():
+    sig_path = 'report/signature_t.png'
+    sig = ''
+    if os.path.exists(sig_path):
+        sig = 'data:image/png;base64,' + base64.b64encode(open(sig_path, 'rb').read()).decode()
     blocks = ''
     for name in CFG['team']:
         blocks += f"""
@@ -349,9 +353,12 @@ def consent_html():
 <h3>라. 개인정보 수집·이용에 동의하지 않을 권리 및 동의하지 않을 경우의 불이익</h3>
 <p>◦ 정보주체는 「2026년 국민체육진흥공단 공공데이터 활용 경진대회」에 개인정보 수집·이용의 동의를 거부할 권리가 있습니다.<br>◦ 개인정보 수집·이용에 동의하지 않을 경우, 본 대회에 참가신청이 불가합니다.</p>
 <p style="margin-top:18px">본인은 「2026년 국민체육진흥공단 공공데이터 활용 경진대회」 에서 본인의 개인정보를 수집·이용하는 것에 동의합니다.</p>
-<p style="text-align:center;font-size:12pt;margin:14px 0">(동의함 □ / 동의하지 않음 □)</p>
+<p style="text-align:center;font-size:12pt;margin:14px 0">(동의함 {'☑' if sig else '□'} / 동의하지 않음 □)</p>
 <p style="text-align:center;font-size:12pt">2026년 10월 2일</p>
-<p style="text-align:right;font-size:12pt;margin-top:30px">신청인 &nbsp;&nbsp; <b>{name}</b> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(서명)</p>
+<div style="display:flex;justify-content:flex-end;align-items:center;gap:14px;font-size:12pt;margin-top:34px">
+<span>신청인</span><b>{name}</b>
+<span style="position:relative;display:inline-block;width:150px;height:60px;text-align:center;line-height:60px;color:#64748b">(서명){f'<img src="{sig}" style="position:absolute;left:8px;top:2px;height:56px">' if sig else ''}</span>
+</div>
 </div>"""
     return head('개인정보 수집·이용 동의서') + blocks + '</body></html>'
 
