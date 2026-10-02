@@ -1,5 +1,7 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import type { AppData, Video } from '../lib/data'
+import { saveRecord, type MeasureRecord } from '../lib/history'
+import { drawShareCard } from '../lib/shareCard'
 import { ageBand, estimateGrade, fitnessAge, percentile } from '../lib/norms'
 import type { TestDef } from '../lib/tests'
 import { Footer } from './Landing'
@@ -19,18 +21,45 @@ type Props = {
 
 export default function ResultScreen({ data, test, profile, count, demo, onRetry, onHome }: Props) {
   const r = useMemo(() => analyze(data, test, profile, count), [data, test, profile, count])
-  const [copied, setCopied] = useState(false)
+  const [shareMsg, setShareMsg] = useState('')
+  const [previous, setPrevious] = useState<MeasureRecord[]>([])
   const sexLabel = profile.sex === 'M' ? '남성' : '여성'
+  const isTeen = test.id === 'curlup'
+  const testLabel = test.cadence ? test.name : `${test.name} ${test.durationSec}초`
+  const gradeLabel = r.grade === '참가' ? '참가 수준' : `${r.grade} 수준`
+  const deltaLabel = r.delta < 0 ? `실제보다 ${-r.delta}세 젊어요` : r.delta > 0 ? `실제보다 ${r.delta}세 많아요` : '나이에 딱 맞아요'
+
+  // 실제 측정만 이 기기에 기록 (데모 제외)
+  useEffect(() => {
+    if (demo) return
+    setPrevious(saveRecord({ at: Date.now(), test: test.id, count, age: profile.age, sex: profile.sex, rank: r.rank }))
+  }, [demo, test.id, count, profile.age, profile.sex, r.rank])
 
   const share = async () => {
-    const text = `국민체력100 ${test.name} ${count}회 → 내 체력나이는 ${r.fitAgeLabel}! 폰 카메라로 집에서 측정해 보세요.`
     const url = location.origin + location.pathname
+    const text = isTeen
+      ? `국민체력100 ${test.name} ${count}회 → 또래 100명 중 ${r.rank}등! 폰 카메라로 집에서 측정해 보세요.`
+      : `국민체력100 ${test.name} ${count}회 → 내 체력나이는 ${r.fitAgeLabel}! 폰 카메라로 집에서 측정해 보세요.`
     try {
-      if (navigator.share) await navigator.share({ title: '홈체력100', text, url })
-      else {
-        await navigator.clipboard.writeText(`${text} ${url}`)
-        setCopied(true)
+      const blob = await drawShareCard({
+        headline: isTeen ? `${test.name} · 같은 성별·나이 100명 중` : `나의 ${test.factor} 체력나이`,
+        big: isTeen ? `${r.rank}등` : r.fitAgeLabel,
+        badge: isTeen ? gradeLabel : deltaLabel,
+        lines: [`${testLabel} ${count}회`, isTeen ? `이 종목 기준 ${gradeLabel}` : `같은 성별·나이 100명 중 ${r.rank}등 · ${gradeLabel}`],
+        footer: `국민체력100 측정 데이터 ${Math.round(data.norms.sampleSize / 10000)}만 건과 비교 · 국민체육진흥공단 공공데이터`,
+      })
+      const file = new File([blob], 'homefit100.png', { type: 'image/png' })
+      if (navigator.canShare?.({ files: [file] })) {
+        await navigator.share({ files: [file], title: '홈체력100', text: `${text} ${url}` })
+        return
       }
+      const a = document.createElement('a')
+      a.href = URL.createObjectURL(blob)
+      a.download = 'homefit100.png'
+      a.click()
+      setTimeout(() => URL.revokeObjectURL(a.href), 1000)
+      await navigator.clipboard?.writeText(`${text} ${url}`).catch(() => {})
+      setShareMsg('카드 이미지 저장됨')
     } catch {
       /* 공유 취소 */
     }
@@ -50,12 +79,12 @@ export default function ResultScreen({ data, test, profile, count, demo, onRetry
                 공단 공식 측정방법 영상에서 AI가 센 횟수 <b className="text-[#7cf5d0]">{demo.aiCount}회</b> · 영상 속 실제 횟수 <b>{demo.truth}회</b>
               </div>
               <div className="mt-2 text-xs text-white/60">
-                아래는 예시 결과예요: {profile.age}세 {sexLabel}가 {test.durationSec}초 동안 {count}회 했다고 가정했어요.
+                아래는 예시 결과예요: {profile.age}세 {sexLabel}가 {test.cadence ? '신호음 리듬에 맞춰' : `${test.durationSec}초 동안`} {count}회 했다고 가정했어요.
               </div>
             </div>
           )}
           <div className="mt-5 text-sm text-white/70">
-            {profile.age}세 {sexLabel} · {test.name} {test.durationSec}초
+            {profile.age}세 {sexLabel} · {testLabel}
           </div>
           <div className="mt-1 text-5xl font-black">{count}회</div>
         </div>
@@ -64,24 +93,65 @@ export default function ResultScreen({ data, test, profile, count, demo, onRetry
       <div className="mx-auto -mt-14 max-w-md space-y-5 px-5 pb-10">
         {/* 체력나이 */}
         <section className="rounded-3xl bg-white p-6 shadow-xl shadow-slate-200/80">
-          <div className="text-sm font-semibold text-slate-500">나의 {test.factor} 체력나이</div>
-          <div className="mt-1 flex items-end gap-3">
-            <div className="text-6xl font-black tracking-tight text-brand">{r.fitAgeLabel}</div>
-            <div className={`mb-2 rounded-full px-3 py-1 text-sm font-bold ${r.delta < 0 ? 'bg-accent/10 text-accent' : r.delta > 0 ? 'bg-orange-50 text-orange-600' : 'bg-slate-100 text-slate-600'}`}>
-              {r.delta < 0 ? `실제보다 ${-r.delta}세 젊어요` : r.delta > 0 ? `실제보다 ${r.delta}세 많아요` : '나이에 딱 맞아요'}
-            </div>
-          </div>
+          {isTeen ? (
+            <>
+              <div className="text-sm font-semibold text-slate-500">나의 {test.factor} · 같은 성별·나이 100명 중</div>
+              <div className="mt-1 flex items-end gap-3">
+                <div className="text-6xl font-black tracking-tight text-brand">{r.rank}등</div>
+                <div className="mb-2 rounded-full bg-accent/10 px-3 py-1 text-sm font-bold text-accent">{gradeLabel}</div>
+              </div>
+              <div className="mt-6 grid grid-cols-2 gap-3">
+                <div className="rounded-2xl bg-slate-50 p-4">
+                  <div className="text-xs text-slate-500">또래 중앙값</div>
+                  <div className="mt-1 text-2xl font-black">{Math.round(r.q[50])}회</div>
+                </div>
+                <div className="rounded-2xl bg-slate-50 p-4">
+                  <div className="text-xs text-slate-500">중앙값과 차이</div>
+                  <div className="mt-1 text-2xl font-black">{signed(count - Math.round(r.q[50]))}회</div>
+                </div>
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="text-sm font-semibold text-slate-500">나의 {test.factor} 체력나이</div>
+              <div className="mt-1 flex items-end gap-3">
+                <div className="text-6xl font-black tracking-tight text-brand">{r.fitAgeLabel}</div>
+                <div className={`mb-2 rounded-full px-3 py-1 text-sm font-bold ${r.delta < 0 ? 'bg-accent/10 text-accent' : r.delta > 0 ? 'bg-orange-50 text-orange-600' : 'bg-slate-100 text-slate-600'}`}>
+                  {deltaLabel}
+                </div>
+              </div>
+              <div className="mt-6 grid grid-cols-2 gap-3">
+                <div className="rounded-2xl bg-slate-50 p-4">
+                  <div className="text-xs text-slate-500">같은 성별·나이 100명 중</div>
+                  <div className="mt-1 text-2xl font-black">상위 {r.rank}등</div>
+                </div>
+                <div className="rounded-2xl bg-slate-50 p-4">
+                  <div className="text-xs text-slate-500">이 종목만 보면</div>
+                  <div className="mt-1 text-2xl font-black">{gradeLabel}</div>
+                </div>
+              </div>
+            </>
+          )}
 
-          <div className="mt-6 grid grid-cols-2 gap-3">
-            <div className="rounded-2xl bg-slate-50 p-4">
-              <div className="text-xs text-slate-500">같은 성별·나이 100명 중</div>
-              <div className="mt-1 text-2xl font-black">상위 {r.rank}등</div>
+          {previous.length > 0 && (
+            <div className="mt-4 rounded-2xl border border-slate-100 p-4">
+              <div className="flex items-center justify-between">
+                <div className="text-sm font-bold">지난 측정과 비교</div>
+                <div className={`text-sm font-black ${count >= previous[0].count ? 'text-accent' : 'text-orange-600'}`}>{signed(count - previous[0].count)}회</div>
+              </div>
+              <ul className="mt-2 space-y-1 text-xs text-slate-500">
+                {previous.slice(0, 4).map((p) => (
+                  <li key={p.at} className="flex justify-between">
+                    <span>{new Date(p.at).toLocaleString('ko-KR', { month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
+                    <span>
+                      {p.count}회 · 100명 중 {p.rank}등
+                    </span>
+                  </li>
+                ))}
+              </ul>
+              <div className="mt-2 text-[11px] text-slate-400">기록은 이 기기의 브라우저에만 저장돼요.</div>
             </div>
-            <div className="rounded-2xl bg-slate-50 p-4">
-              <div className="text-xs text-slate-500">이 종목만 보면</div>
-              <div className="mt-1 text-2xl font-black">{r.grade === '참가' ? '참가 수준' : `${r.grade} 수준`}</div>
-            </div>
-          </div>
+          )}
 
           <Distribution q={r.q} value={count} />
 
@@ -145,7 +215,7 @@ export default function ResultScreen({ data, test, profile, count, demo, onRetry
 
         <div className="grid grid-cols-2 gap-3">
           <button onClick={share} className="rounded-2xl bg-slate-900 py-3.5 font-bold text-white hover:bg-slate-800">
-            {copied ? '링크 복사됨' : '결과 공유하기'}
+            {shareMsg || '결과 카드 공유'}
           </button>
           <button onClick={onRetry} className="rounded-2xl border-2 border-slate-200 bg-white py-3.5 font-bold text-slate-700 hover:bg-slate-50">
             다시 측정하기
@@ -228,6 +298,8 @@ function Distribution({ q, value }: { q: number[]; value: number }) {
     </div>
   )
 }
+
+const signed = (n: number) => (n >= 0 ? `+${n}` : String(n))
 
 function fmtYm(ym: string) {
   return ym ? `${ym.slice(0, 4)}.${ym.slice(4, 6)}` : ''

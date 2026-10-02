@@ -10,6 +10,7 @@ type Step = 'landing' | 'profile' | 'measure' | 'result'
 
 /** 데모 영상(공단 공식 측정방법 영상 구간)의 실제 반복 횟수와 예시 참가자 */
 const DEMO: Record<TestId, { truth: number; profile: Profile; exampleCount: number }> = {
+  curlup: { truth: 4, profile: { sex: 'M', age: 15, sido: '경기' }, exampleCount: 38 },
   situp: { truth: 8, profile: { sex: 'F', age: 45, sido: '서울' }, exampleCount: 28 },
   chairstand: { truth: 6, profile: { sex: 'F', age: 72, sido: '서울' }, exampleCount: 21 },
 }

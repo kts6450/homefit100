@@ -50,8 +50,21 @@ describe('repCounter', () => {
 })
 
 describe('testForAge', () => {
-  it('64→situp, 65→chairstand', () => {
+  it('18→curlup, 19→situp, 64→situp, 65→chairstand', () => {
+    expect(testForAge(11)).toBe('curlup')
+    expect(testForAge(18)).toBe('curlup')
+    expect(testForAge(19)).toBe('situp')
     expect(testForAge(64)).toBe('situp')
     expect(testForAge(65)).toBe('chairstand')
+  })
+})
+
+describe('윗몸말아올리기', () => {
+  it('머리가 바닥에 닿을 때(누운 자세로 돌아올 때) 1회', () => {
+    const c = createRepCounter({ ...TESTS.curlup.counter, alpha: 1 })
+    expect(feed(c, [125, 55, 125, 55, 125, 55]).count).toBe(2)
+  })
+  it('3초 간격 신호음 방식', () => {
+    expect(TESTS.curlup.cadence?.intervalSec).toBe(3)
   })
 })

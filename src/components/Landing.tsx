@@ -1,5 +1,11 @@
 import type { TestId } from '../lib/tests'
 
+const DEMOS: { id: TestId; who: string; name: string }[] = [
+  { id: 'curlup', who: '청소년', name: '윗몸말아올리기' },
+  { id: 'situp', who: '성인', name: '교차윗몸일으키기' },
+  { id: 'chairstand', who: '어르신', name: '의자에앉았다일어서기' },
+]
+
 type Props = {
   sampleSize: number | null
   onStart: () => void
@@ -33,21 +39,18 @@ export default function Landing({ sampleSize, onStart, onDemo }: Props) {
             >
               내 체력나이 측정하기
             </button>
-            <div className="grid grid-cols-2 gap-3">
-              <button
-                onClick={() => onDemo('situp')}
-                className="rounded-2xl border border-white/30 bg-white/10 px-3 py-3 text-sm font-semibold backdrop-blur hover:bg-white/20"
-              >
-                ▶ 운동 없이 체험
-                <span className="block text-xs font-normal text-white/70">윗몸일으키기 데모</span>
-              </button>
-              <button
-                onClick={() => onDemo('chairstand')}
-                className="rounded-2xl border border-white/30 bg-white/10 px-3 py-3 text-sm font-semibold backdrop-blur hover:bg-white/20"
-              >
-                ▶ 운동 없이 체험
-                <span className="block text-xs font-normal text-white/70">어르신 의자 종목 데모</span>
-              </button>
+            <div className="text-center text-xs font-semibold text-white/70">▶ 운동 없이 AI 측정 체험하기 (공단 공식 영상)</div>
+            <div className="grid grid-cols-3 gap-2">
+              {DEMOS.map((d) => (
+                <button
+                  key={d.id}
+                  onClick={() => onDemo(d.id)}
+                  className="rounded-2xl border border-white/30 bg-white/10 px-2 py-3 text-sm font-semibold backdrop-blur hover:bg-white/20"
+                >
+                  {d.who}
+                  <span className="mt-0.5 block text-[11px] font-normal leading-tight text-white/75">{d.name}</span>
+                </button>
+              ))}
             </div>
           </div>
         </div>
@@ -56,7 +59,7 @@ export default function Landing({ sampleSize, onStart, onDemo }: Props) {
       <section className="relative z-10 mx-auto -mt-7 max-w-md px-5">
         <div className="grid grid-cols-3 divide-x divide-slate-100 rounded-2xl bg-white py-4 text-center shadow-lg shadow-slate-200/70">
           <Stat value={sampleSize ? `${Math.round(sampleSize / 10000)}만 건` : '…'} label="비교 측정 데이터" />
-          <Stat value="2종목" label="국민체력100 공식" />
+          <Stat value="3종목" label="국민체력100 공식" />
           <Stat value="0건" label="영상 외부 전송" />
         </div>
       </section>
@@ -64,7 +67,7 @@ export default function Landing({ sampleSize, onStart, onDemo }: Props) {
       <section className="mx-auto max-w-md px-5 py-10">
         <h2 className="text-xl font-extrabold">이렇게 진행돼요</h2>
         <ol className="mt-5 space-y-4">
-          <Step n={1} title="AI 셀프 측정" desc="휴대폰을 세워 두고 운동하면 AI가 관절을 인식해 횟수를 자동으로 세요. 19~64세는 교차윗몸일으키기, 65세 이상은 의자에앉았다일어서기." />
+          <Step n={1} title="AI 셀프 측정" desc="휴대폰을 세워 두고 운동하면 AI가 관절을 인식해 횟수를 자동으로 세요. 11~18세는 윗몸말아올리기, 19~64세는 교차윗몸일으키기, 65세 이상은 의자에앉았다일어서기." />
           <Step n={2} title="체력나이 진단" desc="국민체력100 체력인증센터 실제 측정결과와 비교해 같은 성별·나이 중 내 위치, 체력나이, 예상 등급을 알려드려요." />
           <Step n={3} title="맞춤 처방·연결" desc="나와 비슷한 체력의 사람들이 실제로 받은 운동처방을 공식 영상과 함께 추천하고, 가까운 체력인증센터를 안내해요." />
         </ol>

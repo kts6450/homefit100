@@ -14,6 +14,7 @@ const write = (name, data) => {
 const round1 = (x) => Math.round(x * 10) / 10
 
 const TESTS = {
+  curlup: { field: 'item_f009', minAge: 11, maxAge: 18 },
   situp: { field: 'item_f019', minAge: 19, maxAge: 64 },
   chairstand: { field: 'item_f023', minAge: 65, maxAge: 90 },
 }
@@ -34,7 +35,7 @@ const median = (arr) => {
   const s = [...arr].sort((a, b) => a - b)
   return s.length ? s[Math.floor(s.length / 2)] : NaN
 }
-const ageBand = (age) => String(Math.min(80, Math.max(20, Math.floor(age / 10) * 10)))
+const ageBand = (age) => (age < 19 ? '10' : String(Math.min(80, Math.max(20, Math.floor(age / 10) * 10))))
 
 function percentileOf(q, v) {
   if (v < q[0]) return 0
@@ -70,7 +71,7 @@ for (const [id, t] of Object.entries(TESTS)) {
     const rows = results
       .filter((r) => r.test_sex === sex && r[t.field] !== undefined && r[t.field] !== '' && r[t.field] !== null)
       .map((r) => ({ age: Number(r.age_degree), v: Number(r[t.field]), grade: r.cert_gbn, note: r.pres_note }))
-      .filter((r) => Number.isFinite(r.age) && Number.isFinite(r.v) && r.v >= 0 && r.age >= t.minAge - 5 && r.age <= t.maxAge + 10)
+      .filter((r) => Number.isFinite(r.age) && Number.isFinite(r.v) && r.v >= 0 && r.age >= t.minAge - 2 && r.age <= t.maxAge + (id === 'curlup' ? 2 : 10))
 
     const byAge = new Map()
     for (const r of rows) {

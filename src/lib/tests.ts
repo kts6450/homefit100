@@ -1,6 +1,6 @@
 import type { RepCounterConfig } from './repCounter'
 
-export type TestId = 'situp' | 'chairstand'
+export type TestId = 'curlup' | 'situp' | 'chairstand'
 
 /** MediaPipe Pose 랜드마크 인덱스 */
 const L = { shoulder: 11, hip: 23, knee: 25, ankle: 27 }
@@ -10,7 +10,7 @@ export type TestDef = {
   id: TestId
   name: string
   /** 국민체력100 측정결과 API 항목 */
-  field: 'item_f019' | 'item_f023'
+  field: 'item_f009' | 'item_f019' | 'item_f023'
   target: string
   factor: string
   durationSec: number
@@ -23,10 +23,35 @@ export type TestDef = {
   /** 좌/우 후보 중 잘 보이는 쪽 사용 */
   joints: [number, number, number][]
   counter: RepCounterConfig
+  /** 신호음 리듬에 맞춰 반복하다 놓치면 끝나는 종목 (durationSec은 최대 측정 시간) */
+  cadence?: { intervalSec: number; idleStopSec: number }
   guide: string[]
 }
 
 export const TESTS: Record<TestId, TestDef> = {
+  curlup: {
+    id: 'curlup',
+    name: '윗몸말아올리기',
+    field: 'item_f009',
+    target: '청소년 (11~18세)',
+    factor: '근지구력',
+    durationSec: 300,
+    unit: '회',
+    metric: 'angle',
+    joints: [
+      [L.shoulder, L.hip, L.knee],
+      [R.shoulder, R.hip, R.knee],
+    ],
+    // 누우면 어깨-엉덩이-무릎 각 ≈120~127°, 말아 올리면 ≈50~55°. 머리가 바닥에 닿을 때(각이 커질 때) 1회
+    counter: { downBelow: 75, upAbove: 110, startPhase: 'up', countOn: 'up', alpha: 0.5 },
+    cadence: { intervalSec: 3, idleStopSec: 7.5 },
+    guide: [
+      '휴대폰을 옆에서 몸 전체가 보이게 바닥에 세워 두세요',
+      '무릎을 90°로 세우고 누워 손바닥을 허벅지 위에 올리세요',
+      '높은 "삐" 소리에 손이 무릎에 닿도록 말아 올리고, 낮은 소리에 머리가 바닥에 닿게 내려오세요 (3초에 1회)',
+      '리듬을 두 번 이상 놓치면 측정이 끝나요',
+    ],
+  },
   situp: {
     id: 'situp',
     name: '교차윗몸일으키기',
@@ -72,5 +97,7 @@ export const TESTS: Record<TestId, TestDef> = {
 }
 
 export function testForAge(age: number): TestId {
-  return age >= 65 ? 'chairstand' : 'situp'
+  if (age >= 65) return 'chairstand'
+  if (age >= 19) return 'situp'
+  return 'curlup'
 }

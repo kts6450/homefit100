@@ -66,6 +66,8 @@ export function estimateGrade(gradeMedians: Record<string, number>, value: numbe
   return '참가'
 }
 
+/** 10세 단위 연령대. 청소년(19세 미만)은 '10', 성인 이상은 '20'~'80' */
 export function ageBand(age: number): string {
+  if (age < 19) return '10'
   return String(Math.min(80, Math.max(20, Math.floor(age / 10) * 10)))
 }

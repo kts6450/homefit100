@@ -12,7 +12,7 @@ export default function ProfileForm({ initial, onSubmit, onBack }: Props) {
   const [age, setAge] = useState(initial ? String(initial.age) : '')
   const [sido, setSido] = useState(initial?.sido ?? '')
   const ageNum = Number(age)
-  const ageOk = Number.isInteger(ageNum) && ageNum >= 19 && ageNum <= 100
+  const ageOk = Number.isInteger(ageNum) && ageNum >= 11 && ageNum <= 100
   const ok = sex && ageOk && sido
   const test = ageOk ? TESTS[testForAge(ageNum)] : null
 
@@ -43,14 +43,14 @@ export default function ProfileForm({ initial, onSubmit, onBack }: Props) {
           <input
             type="number"
             inputMode="numeric"
-            min={19}
+            min={11}
             max={100}
             value={age}
             onChange={(e) => setAge(e.target.value)}
             placeholder="예: 42"
             className="w-full rounded-xl border-2 border-slate-200 bg-white px-4 py-3 text-lg font-bold outline-none focus:border-brand"
           />
-          {age && !ageOk && <p className="mt-2 text-sm text-amber-600">19세 이상만 측정할 수 있어요. (청소년 종목은 준비 중이에요)</p>}
+          {age && !ageOk && <p className="mt-2 text-sm text-amber-600">11세부터 측정할 수 있어요.</p>}
         </Field>
 
         <Field label="사는 곳 (시·도)">
@@ -72,7 +72,7 @@ export default function ProfileForm({ initial, onSubmit, onBack }: Props) {
         <div className="mt-8 rounded-2xl bg-brand/5 p-4">
           <div className="text-xs font-semibold text-brand">{test.target} 측정 종목</div>
           <div className="mt-1 text-lg font-extrabold">
-            {test.name} · {test.durationSec}초
+            {test.name} · {test.cadence ? `${test.cadence.intervalSec}초 리듬` : `${test.durationSec}초`}
           </div>
           <div className="mt-1 text-sm text-slate-600">국민체력100 {test.factor} 측정 종목이에요.</div>
         </div>

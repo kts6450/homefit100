@@ -18,12 +18,14 @@ type Props = {
 type Status = 'loading' | 'ready' | 'countdown' | 'running' | 'done' | 'error'
 
 const PHASE_LABEL: Record<TestDef['id'], Record<Phase, string>> = {
+  curlup: { up: '누움', down: '말아올림' },
   situp: { up: '누움', down: '일어남' },
   chairstand: { up: '일어섬', down: '앉음' },
 }
 
 /** 공단 공식 측정방법 영상 (국민체력100 동영상 정보 API) */
 export const OFFICIAL_VIDEO: Record<TestDef['id'], string> = {
+  curlup: 'https://openapi.kspo.or.kr/web/video/0AUDLJ08S_00006.mp4',
   situp: 'https://openapi.kspo.or.kr/web/video/0AUDLJ08S_00028.mp4',
   chairstand: 'https://openapi.kspo.or.kr/web/video/0AUDLJ08S_00031.mp4',
 }
@@ -37,6 +39,10 @@ export default function MeasureScreen({ test, source, onDone, onBack, onFile }: 
   const countRef = useRef(0)
   const counterRef = useRef(createRepCounter(test.counter))
   const endAtRef = useRef(0)
+  const startAtRef = useRef(0)
+  const lastRepAtRef = useRef(0)
+  const lastBeatRef = useRef(-1)
+  const finishRef = useRef<() => void>(() => {})
   const soundRef = useRef(true)
 
   const [status, setStatusState] = useState<Status>('loading')
@@ -50,8 +56,11 @@ export default function MeasureScreen({ test, source, onDone, onBack, onFile }: 
   const [sound, setSound] = useState(true)
   const [manual, setManual] = useState('')
   const [bump, setBump] = useState(0)
+  const [elapsed, setElapsed] = useState(0)
+  const [beatUp, setBeatUp] = useState(true)
 
   const isCamera = source.kind === 'camera'
+  const cadence = isCamera ? test.cadence : undefined
   const setStatus = (s: Status) => {
     statusRef.current = s
     setStatusState(s)
@@ -131,8 +140,21 @@ export default function MeasureScreen({ test, source, onDone, onBack, onFile }: 
       if (!video || !canvas || !landmarker || video.readyState < 2) return
 
       if (statusRef.current === 'running') {
-        if (isCamera) {
-          const left = Math.max(0, Math.ceil((endAtRef.current - performance.now()) / 1000))
+        const now = performance.now()
+        if (cadence) {
+          // 신호음 리듬: 반 주기마다 위로(높은음)/아래로(낮은음)
+          const sec = (now - startAtRef.current) / 1000
+          setElapsed(Math.floor(sec))
+          const beat = Math.floor(sec / (cadence.intervalSec / 2))
+          if (beat > lastBeatRef.current) {
+            lastBeatRef.current = beat
+            const up = beat % 2 === 0
+            setBeatUp(up)
+            tone(up ? 1046 : 523)
+          }
+          if ((now - lastRepAtRef.current) / 1000 > cadence.idleStopSec || sec >= test.durationSec) finish()
+        } else if (isCamera) {
+          const left = Math.max(0, Math.ceil((endAtRef.current - now) / 1000))
           setRemaining(left)
           if (left <= 0) finish()
         } else {
@@ -179,13 +201,17 @@ export default function MeasureScreen({ test, source, onDone, onBack, onFile }: 
           countRef.current = st.count
           setCount(st.count)
           setBump((b) => b + 1)
-          beep()
-          speak(String(st.count))
+          lastRepAtRef.current = performance.now()
+          if (!cadence) {
+            beep()
+            speak(String(st.count))
+          }
         }
       }
     }
 
     const video = videoRef.current
+    finishRef.current = finish
     const onEnded = () => finish()
     video?.addEventListener('ended', onEnded)
     raf = requestAnimationFrame(loop)
@@ -207,12 +233,16 @@ export default function MeasureScreen({ test, source, onDone, onBack, onFile }: 
   }
 
   function beep() {
+    tone(880)
+  }
+
+  function tone(freq: number) {
     if (!soundRef.current) return
     try {
       const ac = new AudioContext()
       const o = ac.createOscillator()
       const g = ac.createGain()
-      o.frequency.value = 880
+      o.frequency.value = freq
       g.gain.setValueAtTime(0.15, ac.currentTime)
       g.gain.exponentialRampToValueAtTime(0.001, ac.currentTime + 0.15)
       o.connect(g).connect(ac.destination)
@@ -238,10 +268,15 @@ export default function MeasureScreen({ test, source, onDone, onBack, onFile }: 
         setCountdown(n)
         if (n > 0) return
         clearInterval(t)
-        endAtRef.current = performance.now() + test.durationSec * 1000
+        const now = performance.now()
+        endAtRef.current = now + test.durationSec * 1000
+        startAtRef.current = now
+        lastRepAtRef.current = now
+        lastBeatRef.current = -1
         setRemaining(test.durationSec)
+        setElapsed(0)
         setStatus('running')
-        speak('시작')
+        if (!cadence) speak('시작')
       }, 1000)
     } else {
       const v = videoRef.current!
@@ -298,8 +333,16 @@ export default function MeasureScreen({ test, source, onDone, onBack, onFile }: 
           <div className="absolute right-3 top-3 rounded-2xl bg-black/65 px-4 py-2 text-right backdrop-blur">
             <div key={bump} className="animate-[pop_.25s_ease-out] text-5xl font-black tabular-nums leading-none">{count}</div>
             <div className="mt-1 text-xs text-slate-300">
-              {isCamera ? `남은 시간 ${remaining}초` : `${Math.round(progress * 100)}% 재생`}
+              {cadence ? `경과 ${elapsed}초` : isCamera ? `남은 시간 ${remaining}초` : `${Math.round(progress * 100)}% 재생`}
             </div>
+          </div>
+        )}
+
+        {cadence && status === 'running' && (
+          <div
+            className={`absolute bottom-3 left-1/2 -translate-x-1/2 rounded-full px-5 py-2 text-2xl font-black shadow-lg transition-colors ${beatUp ? 'bg-accent text-white' : 'bg-white text-slate-900'}`}
+          >
+            {beatUp ? '위로 ↑' : '아래로 ↓'}
           </div>
         )}
 
@@ -329,7 +372,7 @@ export default function MeasureScreen({ test, source, onDone, onBack, onFile }: 
         )}
       </div>
 
-      {isCamera && status === 'running' && (
+      {isCamera && !cadence && status === 'running' && (
         <div className="h-1.5 bg-white/10">
           <div className="h-full bg-accent transition-[width] duration-200" style={{ width: `${(1 - remaining / test.durationSec) * 100}%` }} />
         </div>
@@ -352,7 +395,9 @@ export default function MeasureScreen({ test, source, onDone, onBack, onFile }: 
                   {isCamera && (
                     <li className="flex gap-2">
                       <span className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-white/10 text-xs">{test.guide.length + 1}</span>
-                      시작을 누르면 {COUNTDOWN}초 뒤 {test.durationSec}초 동안 자동으로 셉니다
+                      {cadence
+                        ? `시작을 누르면 ${COUNTDOWN}초 뒤 신호음이 시작되고, 리듬을 놓칠 때까지 자동으로 셉니다`
+                        : `시작을 누르면 ${COUNTDOWN}초 뒤 ${test.durationSec}초 동안 자동으로 셉니다`}
                     </li>
                   )}
                 </ol>
@@ -360,7 +405,7 @@ export default function MeasureScreen({ test, source, onDone, onBack, onFile }: 
                   onClick={start}
                   className="mt-5 w-full rounded-2xl bg-brand py-4 text-lg font-bold shadow-lg shadow-brand/30 hover:bg-brand-dark active:scale-[.99]"
                 >
-                  {isCamera ? `측정 시작 (${test.durationSec}초)` : 'AI 분석 시작 ▶'}
+                  {cadence ? '측정 시작 (신호음 리듬)' : isCamera ? `측정 시작 (${test.durationSec}초)` : 'AI 분석 시작 ▶'}
                 </button>
                 <a href={OFFICIAL_VIDEO[test.id]} target="_blank" rel="noreferrer" className="mt-3 block text-center text-sm text-slate-400 underline underline-offset-4">
                   국민체력100 공식 측정방법 영상 보기
@@ -402,11 +447,18 @@ export default function MeasureScreen({ test, source, onDone, onBack, onFile }: 
           </>
         )}
 
+        {cadence && status === 'running' && (
+          <button onClick={() => finishRef.current()} className="mb-4 w-full rounded-2xl bg-white/10 py-3 font-bold hover:bg-white/20">
+            측정 종료
+          </button>
+        )}
         {(status === 'running' || status === 'countdown') && (
           <p className="text-center text-sm text-slate-400">
             {source.kind === 'demo'
               ? '공단 공식 측정방법 영상을 AI가 실시간으로 분석하고 있어요. 초록색 선이 측정에 쓰는 관절이에요.'
-              : '횟수는 소리로도 알려드려요. 화면을 보지 않아도 괜찮아요.'}
+              : cadence
+                ? '높은 소리에 올라오고 낮은 소리에 내려가세요. 리듬을 두 번 이상 놓치면 자동으로 끝나요.'
+                : '횟수는 소리로도 알려드려요. 화면을 보지 않아도 괜찮아요.'}
           </p>
         )}
       </section>

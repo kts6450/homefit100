@@ -36,7 +36,8 @@ describe('estimateGrade', () => {
 })
 
 describe('ageBand', () => {
-  it('10세 단위, 20~80 제한', () => {
+  it('10세 단위, 20~80 제한 (청소년은 10)', () => {
+    expect(ageBand(15)).toBe('10')
     expect(ageBand(19)).toBe('20')
     expect(ageBand(47)).toBe('40')
     expect(ageBand(93)).toBe('80')
