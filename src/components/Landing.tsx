@@ -53,9 +53,9 @@ export default function Landing({ sampleSize, onStart, onDemo }: Props) {
         </div>
       </section>
 
-      <section className="mx-auto -mt-7 max-w-md px-5">
+      <section className="relative z-10 mx-auto -mt-7 max-w-md px-5">
         <div className="grid grid-cols-3 divide-x divide-slate-100 rounded-2xl bg-white py-4 text-center shadow-lg shadow-slate-200/70">
-          <Stat value={sampleSize ? `${(sampleSize / 10000).toFixed(1)}만` : '…'} label="비교 측정 데이터" />
+          <Stat value={sampleSize ? `${Math.round(sampleSize / 10000)}만 건` : '…'} label="비교 측정 데이터" />
           <Stat value="2종목" label="국민체력100 공식" />
           <Stat value="0건" label="영상 외부 전송" />
         </div>

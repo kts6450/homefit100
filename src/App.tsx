@@ -28,7 +28,10 @@ export default function App() {
     loadData().then(setData, (e) => setDataError(String(e)))
   }, [])
 
-  useEffect(() => window.scrollTo(0, 0), [step])
+  // 최신 Chrome에서 scrollTo는 Promise를 반환하므로 effect 정리 함수로 반환되지 않게 감싼다
+  useEffect(() => {
+    window.scrollTo(0, 0)
+  }, [step])
 
   const test = TESTS[testId]
 
