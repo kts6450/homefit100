@@ -11,3 +11,4 @@ report/*.html
 report/preview/
 report/config.json
 report/signature*.png
+report/counter_reads.json

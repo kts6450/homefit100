@@ -30,26 +30,34 @@ ym = lambda s: f'{s[:4]}.{s[4:6]}'
 RANGE = f"{ym(norms['range'][0])}~{ym(norms['range'][1])}"
 
 
+LEDGER_PATH = 'report/counter_reads.json'
+
+
 def counter(key):
-    """hits.sh 익명 카운터 누적값 (읽기 요청 자체가 1 올리므로 1을 뺀다)"""
+    """hits.sh 익명 카운터 실제값. 읽기 요청도 1씩 올리므로, 이 스크립트가 지금까지 읽은 횟수를 장부에 기록해 뺀다."""
     path = 'kts6450.github.io/homefit100' + (f'/{key}' if key else '')
+    ledger = json.load(open(LEDGER_PATH, encoding='utf-8')) if os.path.exists(LEDGER_PATH) else {}
     try:
         svg = urllib.request.urlopen(f'https://hits.sh/{path}.svg?view=total', timeout=20).read().decode()
-        nums = [int(n) for n in re.findall(r'>(\d+)<', svg)]
-        return max(0, nums[-1] - 1) if nums else 0
     except Exception:
-        return 0
+        return None
+    ledger[key] = ledger.get(key, 0) + 1
+    json.dump(ledger, open(LEDGER_PATH, 'w', encoding='utf-8'), ensure_ascii=False, indent=1)
+    nums = [int(n) for n in re.findall(r'>(\d+)<', svg)]
+    return max(0, nums[-1] - ledger[key]) if nums else None
 
 
 def pilot_html():
+    demo = [counter(f'demo-{t}') for t in ('curlup', 'situp', 'chairstand')]
     stats = {
         '방문': counter(''),
         '측정 완료(청소년)': counter('measure-curlup'),
         '측정 완료(성인)': counter('measure-situp'),
         '측정 완료(어르신)': counter('measure-chairstand'),
-        '데모 체험': counter('demo-curlup') + counter('demo-situp') + counter('demo-chairstand'),
+        '데모 체험': sum(d for d in demo if d) if any(d is not None for d in demo) else None,
         '결과 카드 공유': counter('share'),
     }
+    stats = {k: v for k, v in stats.items() if v}  # 0이거나 읽기 실패한 항목은 표시하지 않음
     pilot = CFG.get('pilot', {})
     testers = pilot.get('testers', [])
     rows = ''.join(
@@ -62,7 +70,7 @@ def pilot_html():
     return f"""
 <h3>ㅇ 시범 운영 결과 ({pilot.get('period', '2026. 10. 2.~')})</h3>
 <p>서비스 공개 후 실제 이용 현황입니다. 운영 통계는 쿠키 없는 익명 카운터로 집계했으며(개발자 자동화 테스트 제외), 측정값·개인정보는 수집하지 않습니다.</p>
-<div class="grid3">{stat_cells}</div>
+{f'<div class="grid3">{stat_cells}</div>' if stats else '<p class="small">공개 첫날로 집계 중입니다.</p>'}
 {f'<table style="margin-top:8px"><tr><th>이용자</th><th>종목</th><th>직접 센 횟수</th><th>AI 카운트</th><th>후기</th></tr>{rows}</table>' if rows else ''}
 {acc}
 """
