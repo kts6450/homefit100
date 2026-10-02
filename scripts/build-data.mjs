@@ -59,7 +59,8 @@ function mainExercises(note) {
 // ---------- 1) 측정결과 → 규준표·등급·처방 ----------
 const results = read('results')
 const testYms = results.map((r) => r.test_ym).filter(Boolean).sort()
-const norms = { updated: testYms.at(-1) ?? '', sampleSize: results.length, range: [testYms[0], testYms.at(-1)], tests: {} }
+// 일부 과거 기록이 섞여 있어 기간은 하위 1% 지점부터 표기
+const norms = { updated: testYms.at(-1) ?? '', sampleSize: results.length, range: [testYms[Math.floor(testYms.length * 0.01)], testYms.at(-1)], tests: {} }
 const rx = {}
 
 for (const [id, t] of Object.entries(TESTS)) {

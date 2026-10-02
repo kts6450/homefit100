@@ -29,11 +29,11 @@ export function loadPose(): Promise<PoseLandmarker> {
 
 export const MIN_VISIBILITY = 0.5
 
-/** 좌/우 후보 중 더 잘 보이는 쪽의 관절 3개 */
+/** 좌/우 후보 중 더 잘 보이는 쪽의 관절 3개 (세 관절 중 가장 안 보이는 관절 기준) */
 export function pickJoints(lm: NormalizedLandmark[], test: TestDef) {
   let best: { idx: [number, number, number]; vis: number } | null = null
   for (const idx of test.joints) {
-    const vis = idx.reduce((s, i) => s + (lm[i]?.visibility ?? 0), 0) / idx.length
+    const vis = Math.min(...idx.map((i) => lm[i]?.visibility ?? 0))
     if (!best || vis > best.vis) best = { idx, vis }
   }
   return best!
