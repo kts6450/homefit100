@@ -15,7 +15,12 @@ export type TestDef = {
   factor: string
   durationSec: number
   unit: '회'
-  /** 각도를 잴 세 관절 [a, 꼭짓점, c] — 좌/우 후보 중 잘 보이는 쪽 사용 */
+  /**
+   * angle: 세 관절 [a, 꼭짓점, c]의 각도
+   * thighShinRatio: [엉덩이, 무릎, 발목]의 허벅지/정강이 세로비
+   */
+  metric: 'angle' | 'thighShinRatio'
+  /** 좌/우 후보 중 잘 보이는 쪽 사용 */
   joints: [number, number, number][]
   counter: RepCounterConfig
   guide: string[]
@@ -30,12 +35,13 @@ export const TESTS: Record<TestId, TestDef> = {
     factor: '근지구력',
     durationSec: 60,
     unit: '회',
+    metric: 'angle',
     joints: [
       [L.shoulder, L.hip, L.knee],
       [R.shoulder, R.hip, R.knee],
     ],
-    // 누우면 어깨-엉덩이-무릎 각이 커지고(≈140°+), 일어나면 작아진다(≈70°-)
-    counter: { downBelow: 75, upAbove: 120, startPhase: 'up', countOn: 'down', alpha: 0.5 },
+    // 누우면 어깨-엉덩이-무릎 각 ≈125~135°, 일어나면 ≈30~40° (공단 측정방법 영상으로 보정)
+    counter: { downBelow: 60, upAbove: 105, startPhase: 'up', countOn: 'down', alpha: 0.5 },
     guide: [
       '휴대폰을 옆에서 몸 전체가 보이게 바닥에 세워 두세요',
       '무릎을 세우고 두 팔을 가슴 앞에서 X자로 교차하세요',
@@ -50,14 +56,15 @@ export const TESTS: Record<TestId, TestDef> = {
     factor: '하지 근기능',
     durationSec: 30,
     unit: '회',
+    metric: 'thighShinRatio',
     joints: [
       [L.hip, L.knee, L.ankle],
       [R.hip, R.knee, R.ankle],
     ],
-    // 앉으면 엉덩이-무릎-발목 각이 ≈90°, 서면 ≈170°
-    counter: { downBelow: 115, upAbove: 155, startPhase: 'down', countOn: 'up', alpha: 0.5 },
+    // 서면 허벅지/정강이 세로비 ≈105~115, 앉으면 ≈45~55 (공단 측정방법 영상으로 보정)
+    counter: { downBelow: 70, upAbove: 95, startPhase: 'down', countOn: 'up', alpha: 0.5 },
     guide: [
-      '휴대폰을 옆에서 몸 전체가 보이게 세워 두세요',
+      '휴대폰을 정면 또는 옆에서 머리부터 발끝까지 보이게 세워 두세요',
       '등받이 의자 가운데에 앉아 두 팔을 가슴 앞에서 X자로 교차하세요',
       '무릎을 완전히 펴고 일어섰다가 다시 완전히 앉으세요',
     ],
