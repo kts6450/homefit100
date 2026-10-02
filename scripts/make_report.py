@@ -18,6 +18,7 @@ centers = json.load(open('public/data/centers.json', encoding='utf-8'))
 videos = json.load(open('public/data/videos.json', encoding='utf-8'))
 rx = json.load(open('public/data/rx.json', encoding='utf-8'))
 rx_names = {e['name'] for t in rx.values() for s in t.values() for b in s.values() for d in b.values() for e in d['top']}
+n_curl = sum(norms['tests']['curlup'][s]['n'] for s in 'MF')
 n_situp = sum(norms['tests']['situp'][s]['n'] for s in 'MF')
 n_chair = sum(norms['tests']['chairstand'][s]['n'] for s in 'MF')
 n_center = len(centers['list'])
@@ -90,6 +91,7 @@ def report_html():
     s = SHOTS
     landing = img(f'{s}/01_landing.png', width=700)
     run_situp = img(f'{s}/03_situp_running_3.png', crop=(0, 0, 824, 720), width=700)
+    run_teen = img(f'{s}/08_curlup_camera_running.png', crop=(0, 0, 824, 900), width=700) if os.path.exists(f'{s}/08_curlup_camera_running.png') else None
     run_chair = img(f'{s}/08_chair_camera_running_2.png', crop=(0, 0, 824, 720), width=700) if os.path.exists(f'{s}/08_chair_camera_running_2.png') else run_situp
     ready = img(f'{s}/06_situp_camera_ready.png', crop=(0, 0, 824, 1500), width=700)
     profile = img(f'{s}/05_situp_profile.png', crop=(0, 0, 824, 1700), width=700)
@@ -123,7 +125,7 @@ def report_html():
 <tr><th>운영주체</th><td>{CFG['operator']}</td></tr>
 <tr><th>서비스 URL</th><td>{URL} (모바일·PC 웹, 설치 불필요)</td></tr>
 <tr><th>서비스 전체 개요</th><td>
-스마트폰을 세워 두고 운동하면 브라우저 안에서 동작하는 AI가 관절을 인식해 국민체력100 공식 측정 종목(성인 <b>교차윗몸일으키기 60초</b>, 어르신 <b>의자에앉았다일어서기 30초</b>)의 횟수를 자동으로 셉니다.
+스마트폰을 세워 두고 운동하면 브라우저 안에서 동작하는 AI가 관절을 인식해 국민체력100 공식 측정 종목(청소년 <b>윗몸말아올리기(3초 신호음 리듬)</b>, 성인 <b>교차윗몸일으키기 60초</b>, 어르신 <b>의자에앉았다일어서기 30초</b>)의 횟수를 자동으로 셉니다.
 측정값은 공단 <b>체력인증센터 실제 측정결과 {norms['sampleSize']:,}건</b>으로 만든 성별·나이별 규준과 비교해 <b>백분위·체력나이·예상 등급</b>으로 보여주고,
 나와 체력 수준이 비슷한 사람들이 <b>센터 운동처방사에게 실제로 받은 처방</b>을 공단 공식 운동 영상과 함께 추천한 뒤, 가까운 <b>체력인증센터 정식 측정</b>으로 연결합니다.
 </td></tr>
@@ -158,10 +160,11 @@ def report_html():
 </div>
 <table style="margin-top:8px">
 <tr><th style="width:120px">기능</th><th>내용</th></tr>
-<tr><td>AI 셀프 측정</td><td>MediaPipe 자세추정 모델을 브라우저에서 실행해 33개 관절을 실시간 인식. 교차윗몸일으키기는 어깨–엉덩이–무릎 각도, 의자에앉았다일어서기는 허벅지/정강이 세로비로 판정하며, 임계값을 둘로 나눈(히스테리시스) 상태머신으로 떨림 중복 카운트를 막습니다. 관절이 가려지면 세지 않고 “몸 전체가 보이게” 안내합니다. 카운트는 소리·음성으로도 알려줍니다.</td></tr>
+<tr><td>AI 셀프 측정</td><td>MediaPipe 자세추정 모델을 브라우저에서 실행해 33개 관절을 실시간 인식. 윗몸말아올리기·교차윗몸일으키기는 어깨–엉덩이–무릎 각도, 의자에앉았다일어서기는 허벅지/정강이 세로비로 판정하며, 임계값을 둘로 나눈(히스테리시스) 상태머신으로 떨림 중복 카운트를 막습니다. 관절이 가려지면 세지 않고 “몸 전체가 보이게” 안내합니다. 카운트는 소리·음성으로도 알려줍니다. 청소년 윗몸말아올리기는 공식 규칙대로 3초 간격 ‘위로/아래로’ 신호음을 내고, 리듬을 놓치면 자동 종료합니다.</td></tr>
 <tr><td>운동 없이 체험(데모)</td><td>공단 <b>공식 측정방법 영상</b>을 같은 AI로 분석해 정확도를 바로 보여줍니다(AI가 센 횟수 vs 영상 속 실제 횟수).</td></tr>
 <tr><td>체력나이 진단</td><td>같은 성별·나이(±2세) 측정자 분포에서 백분위, 연령별 중앙값 곡선에서 체력나이, 등급별 측정자 중앙값과 비교한 예상 등급을 계산합니다.</td></tr>
 <tr><td>실제 처방 기반 추천</td><td>같은 성별·연령대·체력 10분위 그룹이 체력인증센터에서 받은 운동처방(pres_note) 빈도 TOP5를 공단 운동처방 영상과 함께 보여줍니다.</td></tr>
+<tr><td>기록·공유</td><td>측정 기록을 기기 안에만 저장해 “지난 측정 대비 +N회”를 보여주고, 체력나이 결과를 이미지 카드로 저장·공유합니다(링크 미리보기 지원).</td></tr>
 <tr><td>체력인증센터 연결</td><td>사용자 시·도의 센터를 최근 1년 측정건수 순으로 안내하고, 지도와 국민체력100 예약으로 연결합니다.</td></tr>
 <tr><td>대체 경로</td><td>카메라 권한이 없으면 촬영해 둔 영상 파일 분석 또는 직접 횟수 입력으로도 결과·처방을 받을 수 있습니다.</td></tr>
 </table>
@@ -171,22 +174,24 @@ def report_html():
   <figure><img src="{res_center}"><figcaption>⑥ 가까운 체력인증센터 · 예약 연결</figcaption></figure>
   <figure><img src="{run_chair}"><figcaption>⑦ 어르신 종목(의자에앉았다일어서기)</figcaption></figure>
 </div>
+{f'<div class="grid3" style="margin-top:6px"><figure><img src="{run_teen}"><figcaption>⑧ 청소년 윗몸말아올리기 · 신호음 리듬 안내</figcaption></figure></div>' if run_teen else ''}
 
 <h3>ㅇ AI 측정 정확도 검증</h3>
 <table>
 <tr><th>검증 방법</th><th>종목</th><th>실제 횟수</th><th>AI 카운트</th><th>결과</th></tr>
+<tr><td>공단 측정방법 영상 구간(데모, 브라우저)</td><td>윗몸말아올리기</td><td>4회</td><td>4회</td><td class="check">일치</td></tr>
 <tr><td>공단 측정방법 영상 구간(데모, 브라우저)</td><td>교차윗몸일으키기</td><td>8회</td><td>8회</td><td class="check">일치</td></tr>
 <tr><td>공단 측정방법 영상 구간(데모, 브라우저)</td><td>의자에앉았다일어서기</td><td>6회</td><td>6회</td><td class="check">일치</td></tr>
 <tr><td>가상 카메라에 영상 반복 주입, 실제 60초 측정 흐름</td><td>교차윗몸일으키기</td><td>24회</td><td>24회</td><td class="check">일치</td></tr>
 </table>
-<p class="small">※ 임계값은 공단 측정방법 영상에서 추출한 관절 지표 시계열로 보정했으며, 카운터 로직은 단위 테스트 19건으로 검증했습니다.</p>
+<p class="small">※ 임계값은 공단 측정방법 영상에서 추출한 관절 지표 시계열로 보정했으며, 카운터·규준 로직은 단위 테스트 21건으로 검증했습니다.</p>
 
 <h3>ㅇ 기대효과(파급효과)</h3>
 <div class="grid4">
   <div class="kpi"><b>3분</b><span>센터 방문 없이 집에서 1차 측정·결과·처방까지</span></div>
   <div class="kpi"><b>0원</b><span>서버 없는 온디바이스 AI · 사용자 수와 무관한 운영비</span></div>
   <div class="kpi"><b>0건</b><span>외부로 전송되는 영상·개인 측정 기록</span></div>
-  <div class="kpi"><b>{norms['sampleSize']//10000}만 건</b><span>비교 기준이 되는 실제 국민 측정 데이터</span></div>
+  <div class="kpi"><b>11~100세</b><span>청소년·성인·어르신 공식 3종목</span></div>
 </div>
 <table style="margin-top:8px">
 <tr><th style="width:60px">정량</th><td>
@@ -200,6 +205,7 @@ def report_html():
 <li>체력나이·백분위로 자기 체력을 직관적으로 이해 → 운동 시작 동기 부여 (관심 부족 해소)</li>
 <li>셀프 측정 → 센터 정식 인증으로 이어지는 유입 경로를 만들어 국민체력100 참여 확대</li>
 <li>어르신 하지 근기능(의자에앉았다일어서기)을 집에서 자주 점검해 낙상 위험 신호를 조기 발견</li>
+<li>청소년은 학교 체육수업·방과후에 공식 규칙(신호음 리듬) 그대로 사전 측정 가능 → 학생건강체력평가 대비·체력 관리 습관</li>
 <li>공단이 개방한 측정·처방·영상 데이터가 국민이 바로 쓰는 서비스로 환원되는 공공데이터 선순환 사례</li>
 </ul></td></tr>
 </table>
@@ -208,12 +214,12 @@ def report_html():
 <div class="flow"><div>공공데이터포털<br>오픈API 3종</div><i>→</i><div>수집 스크립트<br>(인증키, 페이지 병렬 수집)</div><i>→</i><div>집계<br>규준표·등급·처방·센터</div><i>→</i><div>정적 JSON<br>(약 0.2MB)</div><i>→</i><div>브라우저<br>AI 측정 결과와 비교</div></div>
 <table>
 <tr><th>데이터</th><th>사용 항목</th><th>서비스에서 하는 일</th></tr>
-<tr><td rowspan="4">측정결과 정보<br><span class="small">{norms['sampleSize']:,}건</span></td><td>item_f019 교차윗몸일으키기(회), item_f023 의자에앉았다일어서기(회), test_sex, age_degree</td><td>성별 × 나이(±2세 창)별 101개 분위값 규준표 생성(교차윗몸일으키기 {n_situp:,}건, 의자에앉았다일어서기 {n_chair:,}건) → <b>백분위·체력나이</b></td></tr>
+<tr><td rowspan="4">측정결과 정보<br><span class="small">{norms['sampleSize']:,}건</span></td><td>item_f009 윗몸말아올리기(회), item_f019 교차윗몸일으키기(회), item_f023 의자에앉았다일어서기(회), test_sex, age_degree</td><td>성별 × 나이(±2세 창)별 101개 분위값 규준표 생성(윗몸말아올리기 {n_curl:,}건, 교차윗몸일으키기 {n_situp:,}건, 의자에앉았다일어서기 {n_chair:,}건) → <b>백분위·체력나이</b></td></tr>
 <tr><td>cert_gbn 상장구분(1~6등급·참가)</td><td>연령대·등급별 해당 종목 중앙값 → <b>예상 등급</b></td></tr>
 <tr><td>pres_note 운동처방내용</td><td>‘본운동’ 운동명을 분리해 성별·연령대·체력 10분위 그룹별 처방 빈도 집계 → <b>“비슷한 체력의 사람들이 실제로 받은 처방 TOP5”</b> ({len(rx_names)}종)</td></tr>
 <tr><td>test_ym 측정연월</td><td>최신 데이터({RANGE}) 기준 비교임을 화면에 표기</td></tr>
 <tr><td>측정건수 정보</td><td>center_nm, center_addr1·2, test_ym, test_cnt</td><td>센터별 최신 주소와 최근 12개월 측정건수 합계 → 시·도별 <b>가까운 체력인증센터</b> 안내(운영 {n_center}곳)</td></tr>
-<tr><td rowspan="2">동영상 정보</td><td>체력인증측정방법(TODZ_VDO_FTNS_CERT_I): 교차윗몸일으키기·30초 의자에 앉았다 일어서기 영상</td><td>① AI 카운터 임계값 보정용 학습·검증 영상 ② <b>운동 없이 체험(데모)</b> 영상 ③ 측정 화면의 공식 측정방법 안내</td></tr>
+<tr><td rowspan="2">동영상 정보</td><td>체력인증측정방법(TODZ_VDO_FTNS_CERT_I): 윗몸말아올리기·교차윗몸일으키기·30초 의자에 앉았다 일어서기 영상</td><td>① AI 카운터 임계값 보정용 학습·검증 영상 ② <b>운동 없이 체험(데모)</b> 영상 ③ 측정 화면의 공식 측정방법 안내</td></tr>
 <tr><td>운동처방동영상·전체 동영상 목록: 운동명, 영상URL, 장면 이미지, 설명, 도구</td><td>처방 운동명과 영상 운동명을 정규화 매칭해 <b>처방 운동 {len(rx_names)}종 중 {len(videos)}종</b>에 공식 영상·썸네일 연결</td></tr>
 </table>
 
@@ -230,7 +236,7 @@ def report_html():
 <h2>5) 발전 가능성 · 사업화 계획</h2>
 <table>
 <tr><th style="width:120px">단계</th><th>내용</th></tr>
-<tr><td>종목 확대</td><td>청소년 윗몸말아올리기·반복옆뛰기, 어르신 2분제자리걷기 등 측정결과 데이터에 있는 반복형 종목을 같은 엔진으로 추가</td></tr>
+<tr><td>종목 확대</td><td>반복옆뛰기, 어르신 2분제자리걷기 등 측정결과 데이터에 있는 반복형 종목을 같은 엔진으로 추가해 체력요인별 종합 진단으로 확장</td></tr>
 <tr><td>공공 연계 (B2G)</td><td>국민체력100 앱·홈페이지에 셀프 측정 모듈로 제공, 보건소·지자체 어르신 낙상예방 프로그램의 가정 내 점검 도구</td></tr>
 <tr><td>학교·기업 (B2B)</td><td>학교 체육수업 사전 측정, 기업 임직원 체력 챌린지(부서별 체력나이 리그) — 단체 관리용 대시보드 구독형 과금</td></tr>
 <tr><td>헬스케어 연계</td><td>건강증진형 보험·헬스케어 서비스에 객관적 체력 지표(국가 규준 기반 체력나이) 제공, 이용권 강좌 연계 중개</td></tr>
