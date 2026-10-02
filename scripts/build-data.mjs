@@ -217,7 +217,7 @@ const courses = read('courses')
       days: c.lectr_weekday_val ?? '',
       time: c.start_tm && c.equip_tm ? `${c.start_tm}~${c.equip_tm}` : '',
       facil: f?.facil_nm ?? '',
-      sido: f ? sidoOf(`${f.city_nm ?? ''}`) || (f.city_nm ?? '').slice(0, 2) : '',
+      sido: f ? sidoOf(`${f.city_nm ?? ''} ${f.local_nm ?? ''}`) || (f.city_nm ?? '').slice(0, 2) : '',
       sigungu: f?.local_nm ?? '',
       addr: f ? `${f.road_addr ?? ''}`.trim() : '',
     }

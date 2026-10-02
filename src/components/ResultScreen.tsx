@@ -176,6 +176,37 @@ export default function ResultScreen({ data, test, profile, count, demo, onRetry
           </ul>
         </section>
 
+        {/* 스포츠강좌이용권 강좌 */}
+        {r.courses.length > 0 && (
+          <section className="rounded-3xl bg-white p-6 shadow-sm">
+            <div className="text-xs font-bold text-accent">꾸준히 하기</div>
+            <h2 className="mt-1 text-xl font-extrabold leading-snug">우리 동네 {test.factor} 키우기 좋은 강좌</h2>
+            <p className="mt-2 text-sm text-slate-500">
+              {profile.sido} 스포츠강좌이용권 가맹 강좌 · 이용권 대상자는 수강료를 지원받을 수 있어요
+            </p>
+            <ul className="mt-4 divide-y divide-slate-100">
+              {r.courses.map((c) => (
+                <li key={`${c.facil}-${c.course}`} className="py-3">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <span className="mr-1.5 rounded-md bg-accent/10 px-1.5 py-0.5 text-[11px] font-bold text-accent">{c.item}</span>
+                      <span className="font-bold">{c.course}</span>
+                      <div className="mt-0.5 truncate text-xs text-slate-500">
+                        {c.facil} · {c.sigungu}
+                      </div>
+                      <div className="text-xs text-slate-400">
+                        {weekdays(c.days)} {c.time}
+                      </div>
+                    </div>
+                    <div className="shrink-0 text-right text-sm font-bold">{c.price ? `${c.price.toLocaleString()}원` : ''}</div>
+                  </div>
+                </li>
+              ))}
+            </ul>
+            <p className="mt-2 text-[11px] text-slate-400">출처: 국민체육진흥공단 스포츠강좌이용권 등록강좌·등록시설 정보 (공공데이터포털)</p>
+          </section>
+        )}
+
         {/* 인증센터 */}
         <section className="rounded-3xl bg-white p-6 shadow-sm">
           <div className="text-xs font-bold text-brand">다음 단계</div>
@@ -301,6 +332,11 @@ function Distribution({ q, value }: { q: number[]; value: number }) {
 
 const signed = (n: number) => (n >= 0 ? `+${n}` : String(n))
 
+/** '1111100' (월~일) → '월화수목금' */
+function weekdays(v: string) {
+  return [...'월화수목금토일'].filter((_, i) => v[i] === '1').join('')
+}
+
 function fmtYm(ym: string) {
   return ym ? `${ym.slice(0, 4)}.${ym.slice(4, 6)}` : ''
 }
@@ -326,6 +362,14 @@ function analyze(data: AppData, test: TestDef, profile: Profile, count: number) 
 
   const centers = data.centers.list.filter((c) => c.sido === profile.sido).slice(0, 3)
 
+  // 종목별로 한 강좌씩, 수강료 낮은 순
+  const seen = new Set<string>()
+  const courses = data.courses
+    .filter((c) => c.sido === profile.sido && test.courseItems.includes(c.item) && c.price > 0)
+    .sort((a, b) => a.price - b.price)
+    .filter((c) => !seen.has(c.item) && seen.add(c.item))
+    .slice(0, 5)
+
   return {
     q: norm.q,
     n: norm.n,
@@ -338,5 +382,6 @@ function analyze(data: AppData, test: TestDef, profile: Profile, count: number) 
     rx,
     rxN: rxBucket.n,
     centers,
+    courses,
   }
 }
