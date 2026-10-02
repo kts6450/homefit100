@@ -1,8 +1,109 @@
+import { useEffect, useState } from 'react'
+import Landing from './components/Landing'
+import MeasureScreen, { type Source } from './components/MeasureScreen'
+import ProfileForm, { type Profile } from './components/ProfileForm'
+import ResultScreen, { type DemoInfo } from './components/ResultScreen'
+import { loadData, type AppData } from './lib/data'
+import { TESTS, testForAge, type TestId } from './lib/tests'
+
+type Step = 'landing' | 'profile' | 'measure' | 'result'
+
+/** 데모 영상(공단 공식 측정방법 영상 구간)의 실제 반복 횟수와 예시 참가자 */
+const DEMO: Record<TestId, { truth: number; profile: Profile; exampleCount: number }> = {
+  situp: { truth: 8, profile: { sex: 'F', age: 45, sido: '서울' }, exampleCount: 28 },
+  chairstand: { truth: 6, profile: { sex: 'F', age: 72, sido: '서울' }, exampleCount: 21 },
+}
+
 export default function App() {
+  const [step, setStep] = useState<Step>('landing')
+  const [data, setData] = useState<AppData | null>(null)
+  const [dataError, setDataError] = useState('')
+  const [profile, setProfile] = useState<Profile | null>(null)
+  const [testId, setTestId] = useState<TestId>('situp')
+  const [source, setSource] = useState<Source>({ kind: 'camera' })
+  const [count, setCount] = useState(0)
+  const [demo, setDemo] = useState<DemoInfo | undefined>()
+
+  useEffect(() => {
+    loadData().then(setData, (e) => setDataError(String(e)))
+  }, [])
+
+  useEffect(() => window.scrollTo(0, 0), [step])
+
+  const test = TESTS[testId]
+
+  if (step === 'landing')
+    return (
+      <Landing
+        sampleSize={data?.norms.sampleSize ?? null}
+        onStart={() => {
+          setDemo(undefined)
+          setStep('profile')
+        }}
+        onDemo={(id) => {
+          setTestId(id)
+          setProfile(DEMO[id].profile)
+          setSource({ kind: 'demo' })
+          setStep('measure')
+        }}
+      />
+    )
+
+  if (step === 'profile')
+    return (
+      <ProfileForm
+        initial={profile && !demo ? profile : undefined}
+        onBack={() => setStep('landing')}
+        onSubmit={(p) => {
+          setProfile(p)
+          setTestId(testForAge(p.age))
+          setSource({ kind: 'camera' })
+          setDemo(undefined)
+          setStep('measure')
+        }}
+      />
+    )
+
+  if (step === 'measure')
+    return (
+      <MeasureScreen
+        key={`${testId}-${source.kind}-${source.kind === 'file' ? source.file.name : ''}`}
+        test={test}
+        source={source}
+        onBack={() => setStep(source.kind === 'demo' ? 'landing' : 'profile')}
+        onFile={(file) => setSource({ kind: 'file', file })}
+        onDone={(n) => {
+          if (source.kind === 'demo') {
+            setDemo({ aiCount: n, truth: DEMO[testId].truth })
+            setCount(DEMO[testId].exampleCount)
+          } else {
+            setDemo(undefined)
+            setCount(n)
+          }
+          setStep('result')
+        }}
+      />
+    )
+
+  if (!data || !profile)
+    return (
+      <div className="grid min-h-dvh place-items-center p-6 text-center text-slate-500">
+        {dataError ? `데이터를 불러오지 못했어요. 새로고침해 주세요. (${dataError})` : '측정 데이터를 불러오는 중…'}
+      </div>
+    )
+
   return (
-    <main className="mx-auto max-w-md p-6">
-      <h1 className="text-3xl font-extrabold text-brand">홈체력100</h1>
-      <p className="mt-2 text-slate-600">스마트폰 카메라로 집에서 국민체력100 측정하기 — 준비 중</p>
-    </main>
+    <ResultScreen
+      data={data}
+      test={test}
+      profile={profile}
+      count={count}
+      demo={demo}
+      onRetry={() => {
+        if (demo) setSource({ kind: 'demo' })
+        setStep(demo ? 'measure' : 'profile')
+      }}
+      onHome={() => setStep('landing')}
+    />
   )
 }

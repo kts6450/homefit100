@@ -31,8 +31,9 @@ export function createRepCounter(cfg: RepCounterConfig): RepCounter {
     update(angle) {
       if (angle != null && Number.isFinite(angle)) {
         const first = smoothed == null
-        smoothed = first ? angle : cfg.alpha * angle + (1 - cfg.alpha) * smoothed
-        const next: Phase = smoothed < cfg.downBelow ? 'down' : smoothed > cfg.upAbove ? 'up' : phase
+        const s: number = smoothed == null ? angle : cfg.alpha * angle + (1 - cfg.alpha) * smoothed
+        smoothed = s
+        const next: Phase = s < cfg.downBelow ? 'down' : s > cfg.upAbove ? 'up' : phase
         if (next !== phase) {
           phase = next
           if (!first && phase === cfg.countOn) count++

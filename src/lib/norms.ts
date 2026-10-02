@@ -6,6 +6,8 @@ export type AgeNorm = { n: number; q: number[] }
 export type NormTable = {
   updated: string
   sampleSize: number
+  /** 측정연월 범위 [최소, 최대] (YYYYMM) */
+  range: [string, string]
   tests: Record<
     TestId,
     Record<
