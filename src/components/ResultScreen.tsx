@@ -366,8 +366,10 @@ function analyze(data: AppData, test: TestDef, profile: Profile, count: number) 
 
   // 종목별로 한 강좌씩, 수강료 낮은 순
   const seen = new Set<string>()
+  // 강좌명에 다른 연령 대상 표시가 있으면 제외
+  const otherAges = test.id === 'curlup' ? /성인|시니어|어르신|실버|노인|직장인/ : /청소년|유아|어린이|초등|중등|고등|키즈|주니어|유치|아동|학생/
   const courses = data.courses
-    .filter((c) => c.sido === profile.sido && test.courseItems.includes(c.item) && c.price > 0)
+    .filter((c) => c.sido === profile.sido && test.courseItems.includes(c.item) && c.price > 0 && !otherAges.test(c.course))
     .sort((a, b) => a.price - b.price)
     .filter((c) => !seen.has(c.item) && seen.add(c.item))
     .slice(0, 5)

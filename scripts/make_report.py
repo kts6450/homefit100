@@ -17,6 +17,9 @@ norms = json.load(open('public/data/norms.json', encoding='utf-8'))
 centers = json.load(open('public/data/centers.json', encoding='utf-8'))
 videos = json.load(open('public/data/videos.json', encoding='utf-8'))
 rx = json.load(open('public/data/rx.json', encoding='utf-8'))
+courses = json.load(open('public/data/courses.json', encoding='utf-8'))
+n_course_sido = len({c['sido'] for c in courses})
+json_kb = sum(os.path.getsize(f'public/data/{f}') for f in os.listdir('public/data')) // 1024
 rx_names = {e['name'] for t in rx.values() for s in t.values() for b in s.values() for d in b.values() for e in d['top']}
 n_curl = sum(norms['tests']['curlup'][s]['n'] for s in 'MF')
 n_situp = sum(norms['tests']['situp'][s]['n'] for s in 'MF')
@@ -154,8 +157,10 @@ def report_html():
 <tr><td>1</td><td>서울올림픽기념국민체육진흥공단_국민체력100 체력인증센터 측정결과 정보</td><td>https://www.data.go.kr/data/15108938/openapi.do</td><td>최신 {norms['sampleSize']:,}건 ({RANGE})</td></tr>
 <tr><td>2</td><td>서울올림픽기념국민체육진흥공단_국민체력100 체력인증센터 측정건수 정보</td><td>https://www.data.go.kr/data/15114286/openapi.do</td><td>운영 센터 {n_center}곳, 최근 1년 측정 {center_recent:,}건</td></tr>
 <tr><td>3</td><td>서울올림픽기념국민체육진흥공단_국민체력100 동영상 정보</td><td>https://www.data.go.kr/data/15108846/openapi.do</td><td>체력인증 측정방법 영상 · 운동처방 영상 {len(videos)}종</td></tr>
+{f'''<tr><td>4</td><td>서울올림픽기념국민체육진흥공단_스포츠강좌이용권 등록강좌 정보</td><td>https://www.data.go.kr/data/15107784/openapi.do</td><td>강좌 67,012건 → 추천 종목 {len(courses):,}건</td></tr>
+<tr><td>5</td><td>서울올림픽기념국민체육진흥공단_스포츠강좌이용권 등록시설 정보_GW</td><td>https://www.data.go.kr/data/15107783/openapi.do</td><td>시설 29,330곳 → 강좌에 시·도·시군구 연결</td></tr>''' if courses else ''}
 </table>
-<p class="small">※ 3종 모두 공공데이터포털 오픈API(서울올림픽기념국민체육진흥공단 제공)를 인증키로 직접 호출해 수집했습니다.</p>
+<p class="small">※ {'5' if courses else '3'}종 모두 공공데이터포털 오픈API(서울올림픽기념국민체육진흥공단 제공)를 인증키로 직접 호출해 수집했습니다.</p>
 
 <h2>2) 서비스 개요</h2>
 <table>
@@ -203,6 +208,7 @@ def report_html():
 <tr><td>체력나이 진단</td><td>같은 성별·나이(±2세) 측정자 분포에서 백분위, 연령별 중앙값 곡선에서 체력나이, 등급별 측정자 중앙값과 비교한 예상 등급을 계산합니다.</td></tr>
 <tr><td>실제 처방 기반 추천</td><td>같은 성별·연령대·체력 10분위 그룹이 체력인증센터에서 받은 운동처방(pres_note) 빈도 TOP5를 공단 운동처방 영상과 함께 보여줍니다.</td></tr>
 <tr><td>기록·공유</td><td>측정 기록을 기기 안에만 저장해 “지난 측정 대비 +N회”를 보여주고, 체력나이 결과를 이미지 카드로 저장·공유합니다(링크 미리보기 지원).</td></tr>
+{'<tr><td>동네 강좌 추천</td><td>약한 체력요인을 꾸준히 키울 수 있는 종목(청소년 태권도·줄넘기, 성인 필라테스·헬스, 어르신 요가·수영 등)의 우리 시·도 스포츠강좌이용권 가맹 강좌를 수강료·요일·시간과 함께 추천합니다.</td></tr>' if courses else ''}
 <tr><td>체력인증센터 연결</td><td>사용자 시·도의 센터를 최근 1년 측정건수 순으로 안내하고, 지도와 국민체력100 예약으로 연결합니다.</td></tr>
 <tr><td>대체 경로</td><td>카메라 권한이 없으면 촬영해 둔 영상 파일 분석 또는 직접 횟수 입력으로도 결과·처방을 받을 수 있습니다.</td></tr>
 </table>
@@ -251,7 +257,7 @@ def report_html():
 </table>
 
 <h2>3) 국민체육진흥공단 데이터가 활용된 부분</h2>
-<div class="flow"><div>공공데이터포털<br>오픈API 3종</div><i>→</i><div>수집 스크립트<br>(인증키, 페이지 병렬 수집)</div><i>→</i><div>집계<br>규준표·등급·처방·센터</div><i>→</i><div>정적 JSON<br>(약 0.2MB)</div><i>→</i><div>브라우저<br>AI 측정 결과와 비교</div></div>
+<div class="flow"><div>공공데이터포털<br>오픈API {'5' if courses else '3'}종</div><i>→</i><div>수집 스크립트<br>(인증키, 페이지 병렬 수집)</div><i>→</i><div>집계<br>규준표·등급·처방·센터</div><i>→</i><div>정적 JSON<br>(약 {json_kb:,}KB)</div><i>→</i><div>브라우저<br>AI 측정 결과와 비교</div></div>
 <table>
 <tr><th>데이터</th><th>사용 항목</th><th>서비스에서 하는 일</th></tr>
 <tr><td rowspan="4">측정결과 정보<br><span class="small">{norms['sampleSize']:,}건</span></td><td>item_f009 윗몸말아올리기(회), item_f019 교차윗몸일으키기(회), item_f023 의자에앉았다일어서기(회), test_sex, age_degree</td><td>성별 × 나이(±2세 창)별 101개 분위값 규준표 생성(윗몸말아올리기 {n_curl:,}건, 교차윗몸일으키기 {n_situp:,}건, 의자에앉았다일어서기 {n_chair:,}건) → <b>백분위·체력나이</b></td></tr>
@@ -259,6 +265,7 @@ def report_html():
 <tr><td>pres_note 운동처방내용</td><td>‘본운동’ 운동명을 분리해 성별·연령대·체력 10분위 그룹별 처방 빈도 집계 → <b>“비슷한 체력의 사람들이 실제로 받은 처방 TOP5”</b> ({len(rx_names)}종)</td></tr>
 <tr><td>test_ym 측정연월</td><td>최신 데이터({RANGE}) 기준 비교임을 화면에 표기</td></tr>
 <tr><td>측정건수 정보</td><td>center_nm, center_addr1·2, test_ym, test_cnt</td><td>센터별 최신 주소와 최근 12개월 측정건수 합계 → 시·도별 <b>가까운 체력인증센터</b> 안내(운영 {n_center}곳)</td></tr>
+{f'<tr><td>스포츠강좌이용권 등록강좌 + 등록시설</td><td>item_nm, course_nm, settl_amt, lectr_weekday_val, start_tm·equip_tm / facil_nm, road_addr, city_nm, local_nm (brno+facil_sn으로 결합)</td><td>측정 종목별 추천 종목의 강좌를 시설 주소로 시·도·시군구에 연결해 <b>우리 동네 강좌</b> 추천 ({n_course_sido}개 시·도, 대표자명 등 개인 정보 제외)</td></tr>' if courses else ''}
 <tr><td rowspan="2">동영상 정보</td><td>체력인증측정방법(TODZ_VDO_FTNS_CERT_I): 윗몸말아올리기·교차윗몸일으키기·30초 의자에 앉았다 일어서기 영상</td><td>① AI 카운터 임계값 보정용 학습·검증 영상 ② <b>운동 없이 체험(데모)</b> 영상 ③ 측정 화면의 공식 측정방법 안내</td></tr>
 <tr><td>운동처방동영상·전체 동영상 목록: 운동명, 영상URL, 장면 이미지, 설명, 도구</td><td>처방 운동명과 영상 운동명을 정규화 매칭해 <b>처방 운동 {len(rx_names)}종 중 {len(videos)}종</b>에 공식 영상·썸네일 연결</td></tr>
 </table>
@@ -270,7 +277,7 @@ def report_html():
 <tr><td>재측정자 비식별 연결키</td><td>같은 사람의 체력 변화 추이 규준(“3개월 뒤 기대 향상치”) 제공</td></tr>
 <tr><td>체력인증센터 예약 가능 시간 API</td><td>셀프 측정 직후 빈 시간대를 보여주고 바로 예약 연결</td></tr>
 <tr><td>운동처방 운동명 표준 코드</td><td>처방(pres_note)과 영상 운동명 표기가 달라 {len(rx_names)}종 중 {len(rx_names) - len(videos)}종은 영상 매칭 불가 → 표준 코드로 100% 연결</td></tr>
-<tr><td>스포츠강좌이용권 등록강좌 + 등록시설 결합 데이터</td><td>약한 체력요인에 맞는 동네 이용권 강좌를 바로 추천</td></tr>
+<tr><td>스포츠강좌이용권 강좌 정원·잔여석 정보</td><td>추천 강좌의 수강 가능 여부를 바로 보여주고 신청으로 연결</td></tr>
 </table>
 
 <h2>5) 발전 가능성 · 사업화 계획</h2>
@@ -311,6 +318,7 @@ def evidence_html():
 <h2>5) 국민체육진흥공단 데이터가 활용된 부분</h2>
 <table>
 <tr><th>데이터</th><th>활용 부분</th><th>코드 위치</th></tr>
+{'<tr><td>스포츠강좌이용권 등록강좌·등록시설 정보</td><td>시·도별 추천 종목 강좌(수강료·요일·시간)</td><td>scripts/build-data.mjs → public/data/courses.json</td></tr>' if courses else ''}
 <tr><td>국민체력100 체력인증센터 측정결과 정보</td><td>규준표(백분위·체력나이), 등급 기준, 실제 처방 TOP5</td><td>scripts/build-data.mjs → public/data/norms.json, rx.json</td></tr>
 <tr><td>국민체력100 체력인증센터 측정건수 정보</td><td>시·도별 체력인증센터 안내(최근 1년 측정건수)</td><td>scripts/build-data.mjs → public/data/centers.json</td></tr>
 <tr><td>국민체력100 동영상 정보</td><td>AI 카운터 보정·데모 영상(측정방법), 처방 운동 영상 연결</td><td>public/demo/*.mp4, public/data/videos.json</td></tr>

@@ -205,23 +205,38 @@ const centerList = [...centers.values()]
 write('centers', { updated: latestYm, list: centerList })
 console.log('센터 시도 미분류:', centerList.filter((c) => !c.sido).map((c) => c.addr))
 
-// ---------- 4) 스포츠강좌이용권 강좌 (등록시설 정보가 있을 때 지역 연결) ----------
+// ---------- 4) 스포츠강좌이용권 강좌 (등록시설과 연결해 지역 정보 부여) ----------
+// 서비스에서 추천하는 종목만, 시·도 × 종목별 수강료 낮은 순 10개 (대표자명 등 개인 정보는 제외)
+const COURSE_ITEMS = new Set(['태권도', '줄넘기', '수영', '농구', '축구(풋살)', '클라이밍', '댄스(줌바 등)', '필라테스', '헬스', '요가', '크로스핏', '복싱', '에어로빅', '탁구'])
 const facilities = new Map(read('facilities').map((f) => [`${f.brno}-${f.facil_sn}`, f]))
-const courses = read('courses')
+const seenCourse = new Set()
+const allCourses = read('courses')
+  .filter((c) => COURSE_ITEMS.has((c.item_nm ?? '').trim()))
   .map((c) => {
     const f = facilities.get(`${c.brno}-${c.facil_sn}`)
+    if (!f) return null
     return {
-      item: (c.item_nm ?? '').trim(),
-      course: (c.course_nm ?? '').trim(),
+      item: c.item_nm.trim(),
+      course: (c.course_nm ?? '').replace(/\s+/g, ' ').trim(),
       price: Number(c.settl_amt) || 0,
       days: c.lectr_weekday_val ?? '',
       time: c.start_tm && c.equip_tm ? `${c.start_tm}~${c.equip_tm}` : '',
-      facil: f?.facil_nm ?? '',
-      sido: f ? sidoOf(`${f.city_nm ?? ''} ${f.local_nm ?? ''}`) || (f.city_nm ?? '').slice(0, 2) : '',
-      sigungu: f?.local_nm ?? '',
-      addr: f ? `${f.road_addr ?? ''}`.trim() : '',
+      facil: (f.facil_nm ?? '').trim(),
+      sido: sidoOf(`${f.road_addr ?? ''}`) || sidoOf(`${f.city_nm ?? ''} ${f.local_nm ?? ''}`),
+      sigungu: (f.local_nm ?? '').trim(),
     }
   })
-  .filter((c) => c.course && c.facil)
+  .filter((c) => c && c.course && c.facil && c.sido && c.price >= 10000)
+  .filter((c) => {
+    const k = `${c.facil}|${c.course}`
+    return !seenCourse.has(k) && seenCourse.add(k)
+  })
+const groups = new Map()
+for (const c of allCourses) {
+  const k = `${c.sido}|${c.item}`
+  if (!groups.has(k)) groups.set(k, [])
+  groups.get(k).push(c)
+}
+const courses = [...groups.values()].flatMap((g) => g.sort((a, b) => a.price - b.price).slice(0, 10))
 write('courses', courses)
-console.log(`강좌 ${courses.length}건 (시설 연결됨)`)
+console.log(`강좌: 추천 종목·시설 연결 ${allCourses.length}건 중 ${courses.length}건 수록`)

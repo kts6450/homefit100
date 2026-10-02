@@ -24,7 +24,7 @@ async function getPage(endpoint, pageNo, numOfRows = 1000, tries = 4) {
     } catch (e) {
       if (i === tries - 1) {
         console.warn(`SKIP ${endpoint} p${pageNo}: ${e.message}`);
-        return { totalCount: 0, items: [] };
+        return { totalCount: 0, items: [], failed: true };
       }
       await new Promise((r) => setTimeout(r, 3000 * (i + 1)));
     }
@@ -51,14 +51,23 @@ async function fetchAll(name, endpoint, { pages, concurrency = 6 } = {}) {
   const pageList = pages ? pages(lastPage) : Array.from({ length: lastPage }, (_, i) => i + 1);
   console.log(`[${name}] total=${first.totalCount} pages=${pageList.length}`);
   let done = 0;
+  const failed = [];
   const chunks = await pool(
     pageList.map((p) => async () => {
       const r = p === 1 ? first : await getPage(endpoint, p);
+      if (r.failed) failed.push(p);
       if (++done % 20 === 0) console.log(`[${name}] ${done}/${pageList.length}`);
       return r.items;
     }),
     concurrency,
   );
+  // 호출 제한으로 빠진 페이지는 하나씩 천천히 다시 받는다
+  for (const p of failed) {
+    await new Promise((r) => setTimeout(r, 1500));
+    const r = await getPage(endpoint, p, 1000, 8);
+    console.log(`[${name}] retry p${p}: ${r.failed ? 'FAIL' : r.items.length}`);
+    chunks.push(r.items);
+  }
   const items = chunks.flat();
   fs.writeFileSync(path.join(OUT, `${name}.json`), JSON.stringify(items));
   console.log(`[${name}] saved ${items.length}`);
