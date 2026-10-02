@@ -6,3 +6,7 @@ dist/
 .DS_Store
 data-raw/
 *.log
+report/*.pdf
+report/*.html
+report/preview/
+report/config.json
